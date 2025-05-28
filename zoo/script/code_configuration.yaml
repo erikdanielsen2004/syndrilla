@@ -1,0 +1,5 @@
+code: [surface, toric]
+probability: [0.01, 0.02, 0.03, 0.04, 0.05]
+type: [hx, hz]
+distance: [8, 9, 10, 11]
+float: ["bfloat16", "float16", "float32", "float64"]
