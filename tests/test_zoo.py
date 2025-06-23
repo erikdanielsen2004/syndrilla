@@ -33,7 +33,7 @@ def main():
             f"-c={check_yaml}",
             f"-s={syndrome_yaml}",
             "-bs=100000",
-            "-ss=1000000"
+            "-ss=1000000",
             "-o=examples/alist/output.yaml"
         ]
 
