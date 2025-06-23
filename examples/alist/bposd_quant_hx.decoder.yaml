@@ -1,5 +1,5 @@
 decoder:
-  algorithm: [bp_norm_min_sum, osd_0]
+  algorithm: [bp_norm_min_sum_quant, osd_0]
   type: hx
   max_iter: 131
   parity_matrix_hx: examples/alist/hx.matrix.yaml
@@ -8,4 +8,6 @@ decoder:
   logical_check_matrix: True
   logical_check_lx: examples/alist/lx.matrix.yaml
   logical_check_lz: examples/alist/lz.matrix.yaml
+  int_width: 3
+  frac_width: 4
   
