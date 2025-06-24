@@ -174,7 +174,6 @@ def test_batch_alist_hx(sample_size=1000, batch_size=1000):
 
 
 if __name__ == '__main__':
-    
     batch_size = 500
     sample_size = 5000
     test_batch_alist_hx(sample_size, batch_size)

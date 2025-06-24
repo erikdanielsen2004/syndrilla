@@ -6,9 +6,9 @@ from loguru import logger
 
 
 def report_metric(e_estimated, e_actual, iteration, time_iteration, check, converge, decode_idx):
-    '''
+    """
     This function reports the decoding iteration and accuracy.
-    '''
+    """
     
     logger.info(f'Reporting decoding metric for decoder {decode_idx}.')
     
@@ -17,14 +17,21 @@ def report_metric(e_estimated, e_actual, iteration, time_iteration, check, conve
     total_time = np.sum(time_iteration)
     logger.info(f'Total time for <{sample_size}> samples: {total_time} seconds.')
 
-    average_time_sample = total_time/sample_size
-    logger.info(f'Average time per sample: {average_time_sample} seconds.')
-
     average_iter = torch.mean(iteration).item()
     logger.info(f'Average iterations per sample: {average_iter}')
-    
-    average_time_sample_iter = (average_time_sample/average_iter).item()
-    logger.info(f'Average time per iteration per sample: {average_time_sample_iter}')
+
+    if total_time == 0:
+        average_time_sample = 0
+        logger.info(f'Average time per sample: {average_time_sample} seconds.')
+        
+        average_time_sample_iter = 0
+        logger.info(f'Average time per iteration per sample: {average_time_sample_iter}')
+    else:
+        average_time_sample = total_time/sample_size
+        logger.info(f'Average time per sample: {average_time_sample} seconds.')
+        
+        average_time_sample_iter = (average_time_sample/average_iter).item()
+        logger.info(f'Average time per iteration per sample: {average_time_sample_iter}')
 
     e_estimated = e_estimated.to(e_estimated.device)
     comparison = torch.unique(e_estimated == e_actual, return_counts=True)[1]
@@ -38,18 +45,35 @@ def report_metric(e_estimated, e_actual, iteration, time_iteration, check, conve
     num_error = torch.sum(e_estimated != e_actual)
    
     total_ones = torch.sum((e_estimated == 1) | (e_actual == 1))
-    correction_acc = 1 - float(num_error)/float(total_ones)
-    logger.info(f'Correction accuracy: {correction_acc}')
+    if float(num_error) == 0:
+        correction_acc = 1
+        logger.info(f'Correction accuracy: {correction_acc}')
+    else:
+        correction_acc = 1 - float(num_error)/float(total_ones)
+        logger.info(f'Correction accuracy: {correction_acc}')
 
-    logical_error_rate = (int(torch.sum(check))/(check.size()[0]))
-    logger.info(f'Output logical check error rate is {logical_error_rate}')
+    if int(torch.sum(check)) == 0:
+        logical_error_rate = 0
+        logger.info(f'Output logical check error rate is {logical_error_rate}')
+    else:
+        logical_error_rate = (int(torch.sum(check))/(check.size()[0]))
+        logger.info(f'Output logical check error rate is {logical_error_rate}')
 
-    invoke_rate = ((check.size()[0] - int(torch.sum(converge)))/(check.size()[0]))
-    logger.info(f'The frequency of decoder invoke is {invoke_rate}')
+    if torch.isinf(torch.sum(converge)) or torch.isnan(torch.sum(converge)):
+        invoke_rate = 1
+        logger.info(f'The frequency of decoder invoke is {invoke_rate}')
+    else:
+        if int(torch.sum(converge)) == 0:
+            invoke_rate = 1
+            logger.info(f'The frequency of decoder invoke is {invoke_rate}')
+        else:
+            invoke_rate = ((check.size()[0] - int(torch.sum(converge)))/(check.size()[0]))
+            logger.info(f'The frequency of decoder invoke is {invoke_rate}')
 
     logger.info(f'Complete.')
 
     return total_time, average_time_sample, average_iter, average_time_sample_iter, data_qubit_acc, correction_acc, logical_error_rate, invoke_rate
+
 
 def save_metric(out_dict, curr_dir, batch_size, sample_size, physical_error_rate):
     """
@@ -64,7 +88,7 @@ def save_metric(out_dict, curr_dir, batch_size, sample_size, physical_error_rate
     logger.info('Saving all decoding metrics to a YAML file.')
 
     def format_time(value):
-        return f"{float(value):.6f}(s)"
+        return f'{float(value):.6f}(s)'
 
     all_metrics_results = {}
 
@@ -97,12 +121,13 @@ def save_metric(out_dict, curr_dir, batch_size, sample_size, physical_error_rate
 }
 
     os.makedirs(curr_dir, exist_ok=True)  # Ensure directory exists
-    output_path = os.path.join(curr_dir, f"result_phy_err_{physical_error_rate}.yaml")
+    output_path = os.path.join(curr_dir, f'result_phy_err_{physical_error_rate}.yaml')
 
     with open(output_path, 'w') as f:
         yaml.safe_dump(all_metrics_results, f, sort_keys=False)
 
-    logger.info(f"Saved all decoder metrics to: {output_path}")
+    logger.info(f'Saved all decoder metrics to: {output_path}')
+
 
 def compute_avg_metrics(sample_size, i, num_batches,
                         total_time_all,

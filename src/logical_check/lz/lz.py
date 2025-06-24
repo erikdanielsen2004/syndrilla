@@ -30,6 +30,7 @@ class create():
         logger.info(f'Logical check rate measurement complete.')
         return logical_check
     
+    
     def check_osd(self, e_v_total, error_vector, lz_matrix, converge=None):
         logger.info(f'Measuring logical check rate.')
         e_v_total = e_v_total.to(error_vector.device)

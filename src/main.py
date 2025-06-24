@@ -54,7 +54,7 @@ def save_metrics_to_csv(csv_path, row_dict, fieldnames):
     if one doesn't already exist, otherwise appends to the existing file.
     """
     file_exists = os.path.isfile(csv_path)
-    with open(csv_path, "a", newline="") as f:
+    with open(csv_path, 'a', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         if not file_exists:
             writer.writeheader()

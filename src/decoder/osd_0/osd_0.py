@@ -149,7 +149,7 @@ class create(torch.nn.Module):
 
     
     def LU_decomposition_batch(self, H, cols_batch):
-        '''
+        """
         Perform LU decomposition on GF(2) for a batch of column orderings.
 
         Args:
@@ -161,7 +161,7 @@ class create(torch.nn.Module):
             U_batch: [B, A_rank, N]
             rows_batch: [B, M]
             cols_batch_out: [B, N]
-        '''
+        """
         B, N = cols_batch.shape
         M = H.shape[0]
 
@@ -438,7 +438,7 @@ class create(torch.nn.Module):
         return L_batch_dense, U_batch_dense, rows_batch, cols_batch_out, used_col_count
 
     def mod2sparse_forward_sub_batch(self, L_batch, rows_batch, x_batch):
-        '''
+        """
         Batch version of mod2 forward substitution solving L y = x over GF(2)
 
         Args:
@@ -448,7 +448,7 @@ class create(torch.nn.Module):
 
         Returns:
             y_batch: [B, K]
-        '''
+        """
         device = L_batch.device
         B, M, K = L_batch.shape
         y_batch = torch.zeros((B, K), dtype=torch.uint8, device=device)
@@ -487,7 +487,7 @@ class create(torch.nn.Module):
 
 
     def mod2sparse_backward_sub_batch(self, U_batch, cols_batch, y_batch):
-        '''
+        """
         Batch version of backward substitution solving U z = y over GF(2)
 
         Args:
@@ -497,7 +497,7 @@ class create(torch.nn.Module):
 
         Returns:
             z_batch: [B, rr]
-        '''
+        """
         B, K, rr = U_batch.shape
         device = U_batch.device
         z_batch = torch.zeros((B, rr), dtype=torch.uint8, device=device)
@@ -539,7 +539,7 @@ class create(torch.nn.Module):
     
 
     def gf2_rank(self, matrix):
-        '''
+        """
         Function: gf2_rank
             Computes the rank of a binary matrix over GF(2).
         
@@ -550,7 +550,7 @@ class create(torch.nn.Module):
         Output:
             rank (int): The rank of the input matrix over the finite field GF(2),
             determined using Gaussian elimination with XOR operations.
-        '''
+        """
         mat = matrix.clone()
         n_rows, n_cols = mat.shape
         rank = 0
@@ -576,11 +576,11 @@ class create(torch.nn.Module):
  
 
     def print_row_ones(matrix: torch.Tensor):
-        '''
+        """
         'Print which columns have a value of 1 in each row.'
         Args:
             matrix (torch.Tensor): A 2D tensor with binary values (0/1).
-        '''
+        """
         if matrix.dim() != 2:
             logger.warning('Input must be a 2D tensor.')
 
@@ -594,13 +594,13 @@ class create(torch.nn.Module):
     
 
     def H_to_sparse(self, H_dense):
-        '''
+        """
         Convert a binary matrix to sparse format.
         Args:
             H (torch.Tensor): A 2D tensor with binary values (0/1).
         Returns:
             sparse_H : Sparse representation of H.
-        '''
+        """
         if H_dense.dim() != 2:
             logger.warning('Input must be a 2D tensor.')
         

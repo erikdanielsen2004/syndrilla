@@ -10,7 +10,7 @@ def clean_dir(base_path: str):
     shutil.rmtree(generated_path, ignore_errors=True)
 
 
-def generate_decoder(base_path: str, code, type, distance, float):
+def generate_decoder(base_path: str, code, type, distance, float, decoder):
     """
         Generate decoder yaml file from examples
     """
@@ -18,9 +18,9 @@ def generate_decoder(base_path: str, code, type, distance, float):
     template_path = 'examples/alist/'
     generated_path = base_path
 
-    configuration_dict = template_path + f'bp_{type}.decoder.yaml'
+    configuration_dict = template_path + f'{decoder}_{type}.decoder.yaml'
 
-    target_file = os.path.join(generated_path, f'bp_{type}.decoder.yaml')
+    target_file = os.path.join(generated_path, f'{decoder}_{type}.decoder.yaml')
 
     # Read, modify, and write
     config = read_yaml(configuration_dict)
@@ -33,6 +33,8 @@ def generate_decoder(base_path: str, code, type, distance, float):
             config['decoder']['max_iter'] = distance*2*(distance)
         config['decoder']['parity_matrix_hx'] = base_path + 'hx.matrix.yaml'
         config['decoder']['parity_matrix_hz'] = base_path + 'hz.matrix.yaml'
+        config['decoder']['logical_check_lx'] = base_path + 'lx.matrix.yaml'
+        config['decoder']['logical_check_lz'] = base_path + 'lz.matrix.yaml'
 
     write_yaml(target_file, config)
 
@@ -154,25 +156,26 @@ def main():
     base_dir = 'zoo/'
     config_list = read_yaml(base_dir + 'script/code_configuration.yaml')
     # load each different code settings from code_configuration.yaml file
-    for code in config_list['code']:
-        for type in config_list['type']:
-            for distance in config_list['distance']:
-                for float in config_list['float']:
-                    for probability in config_list['probability']:
-                        dir_name = f"bp_sweeping/{code}_{type}_{distance}_{float}_{probability}"
-                        base_path = os.path.join(base_dir, dir_name)
-                        os.makedirs(base_path, exist_ok=True)
-                        # clean up directionary
-                        clean_dir(base_path)
-                        if os.path.isdir(base_path):
-                            # create each yaml files
-                            generate_decoder(base_path, code, type, distance, float)
-                            generate_syndrome(base_path)
-                            generate_error(base_path, probability)
-                            generate_matrix(base_path, code, distance)
-                            generate_checker(base_path, type)
-                            generate_output(base_path)
-                            
+    for decoder in config_list['decoder']:
+        for code in config_list['code']:
+            for type in config_list['type']:
+                for distance in config_list['distance']:
+                    for float in config_list['float']:
+                        for probability in config_list['probability']:
+                            dir_name = f'{decoder}_sweeping/{code}_{type}_{distance}_{float}_{probability}'
+                            base_path = os.path.join(base_dir, dir_name)
+                            os.makedirs(base_path, exist_ok=True)
+                            # clean up directionary
+                            clean_dir(base_path)
+                            if os.path.isdir(base_path):
+                                # create each yaml files
+                                generate_decoder(base_path, code, type, distance, float, decoder)
+                                generate_syndrome(base_path)
+                                generate_error(base_path, probability)
+                                generate_matrix(base_path, code, distance)
+                                generate_checker(base_path, type)
+                                generate_output(base_path)
+                                
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
