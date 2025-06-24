@@ -1,5 +1,6 @@
+decoder: [bposd, bp, lottery_bp, bp_quant, lottery_bp_quant]
 code: [surface, toric]
 probability: [0.01, 0.02, 0.03, 0.04, 0.05]
 type: [hx, hz]
-distance: [8, 9, 10, 11]
-float: ["bfloat16", "float16", "float32", "float64"]
+distance: [3, 5, 8, 11]
+float: ['bfloat16', 'float16', 'float32', 'float64']
