@@ -13,7 +13,7 @@ from src.metric import report_metric, compute_avg_metrics
 from src.logical_check import create_check
 
 
-def test_batch_alist_hx(batch_size=1000, target_error=100, save_error_llr=False):
+def test_batch_alist_hx(batch_size=1000, target_error=100):
     decoder_yaml = 'examples/alist/bp_hx.decoder.yaml'
     logical_check_yaml = 'examples/alist/lx.check.yaml'
     cmd = [
@@ -25,7 +25,6 @@ def test_batch_alist_hx(batch_size=1000, target_error=100, save_error_llr=False)
         '-s=examples/alist/perfect.syndrome.yaml',
         f'-bs={batch_size}',
         f'-te={target_error}',
-        f'-se={save_error_llr}'
     ]
 
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -35,7 +34,7 @@ def test_batch_alist_hx(batch_size=1000, target_error=100, save_error_llr=False)
     print('STDERR:\n', result.stderr)
 
 
-def test_batch_alist_hz(batch_size=1000, target_error=100, save_error_llr=False):
+def test_batch_alist_hz(batch_size=1000, target_error=100):
     decoder_yaml = 'examples/alist/bp_hz.decoder.yaml'
     logical_check_yaml = 'examples/alist/lz.check.yaml'
     cmd = [
@@ -46,8 +45,7 @@ def test_batch_alist_hz(batch_size=1000, target_error=100, save_error_llr=False)
         f'-c={logical_check_yaml}',
         '-s=examples/alist/perfect.syndrome.yaml',
         f'-bs={batch_size}',
-        f'-te={target_error}',
-        f'-se={save_error_llr}'
+        f'-te={target_error}'
     ]
 
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -57,7 +55,7 @@ def test_batch_alist_hz(batch_size=1000, target_error=100, save_error_llr=False)
     print('STDERR:\n', result.stderr)
 
  
-def test_batch_txt_hx(batch_size=1000, target_error=100, save_error_llr=False):
+def test_batch_txt_hx(batch_size=1000, target_error=100):
     decoder_yaml = 'examples/txt/bp_hx.decoder.yaml'
     logical_check_yaml = 'examples/txt/lx.check.yaml'
     cmd = [
@@ -68,8 +66,7 @@ def test_batch_txt_hx(batch_size=1000, target_error=100, save_error_llr=False):
         f'-c={logical_check_yaml}',
         '-s=examples/txt/perfect.syndrome.yaml',
         f'-bs={batch_size}',
-        f'-te={target_error}',
-        f'-se={save_error_llr}'
+        f'-te={target_error}'
     ]
 
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -79,7 +76,7 @@ def test_batch_txt_hx(batch_size=1000, target_error=100, save_error_llr=False):
     print('STDERR:\n', result.stderr)
 
 
-def test_batch_txt_hz(batch_size=1000, target_error=100, save_error_llr=False):
+def test_batch_txt_hz(batch_size=1000, target_error=100):
     # create decoder
     decoder_yaml = 'examples/txt/bp_hz.decoder.yaml'
     logical_check_yaml = 'examples/txt/lz.check.yaml'
@@ -91,8 +88,7 @@ def test_batch_txt_hz(batch_size=1000, target_error=100, save_error_llr=False):
         f'-c={logical_check_yaml}',
         '-s=examples/txt/perfect.syndrome.yaml',
         f'-bs={batch_size}',
-        f'-te={target_error}',
-        f'-se={save_error_llr}'
+        f'-te={target_error}'
     ]
 
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -105,8 +101,8 @@ def test_batch_txt_hz(batch_size=1000, target_error=100, save_error_llr=False):
 if __name__ == '__main__': 
     batch_size = 1000
     target_error = 100
-    save_error_llr = False
-    test_batch_txt_hx(batch_size, target_error, save_error_llr)
-    test_batch_txt_hz(batch_size, target_error, save_error_llr)
-    test_batch_alist_hx(batch_size, target_error, save_error_llr)
-    test_batch_alist_hz(batch_size, target_error, save_error_llr)
+    test_batch_txt_hx(batch_size, target_error)
+    test_batch_txt_hz(batch_size, target_error)
+    test_batch_alist_hx(batch_size, target_error)
+    test_batch_alist_hz(batch_size, target_error)
+    

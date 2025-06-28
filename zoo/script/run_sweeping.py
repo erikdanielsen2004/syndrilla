@@ -22,14 +22,14 @@ def parse_commandline_args():
     parser.add_argument('-r', '--run_dir', type=str, default=None,
                         help = 'The run directory.')
     parser.add_argument('-d', '--decoder', type=str, default='bposd',
-                        help = 'The run directory.')
+                        help = 'The decoder.')
     parser.add_argument('-bs', '--batch_size', type=int, default=10000,
                         help = 'The number of samples run each batch.')
 
     return parser.parse_args()
 
 
-def main(target_error, save_error_llr):
+def main(target_error):
     args = parse_commandline_args()
 
     assert os.path.isdir(args.run_dir), logger.error(f'Illegal input run_dir: {args.run_dir}.')
@@ -67,9 +67,6 @@ def main(target_error, save_error_llr):
             f'-te={target_error}'
         ]
 
-        if save_error_llr:
-            cmd.append('-se')
-
         folder_path = Path(folder_path)
         results_files = list(folder_path.glob("result*"))
 
@@ -86,4 +83,4 @@ def main(target_error, save_error_llr):
 
 
 if __name__ == '__main__':
-    main(target_error=100, save_error_llr=False)
+    main(target_error=100)

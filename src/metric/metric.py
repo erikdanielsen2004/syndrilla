@@ -25,22 +25,22 @@ def report_metric(e_estimated, e_actual, iteration, time_iteration, check, conve
         logger.info(f'Average time per sample: {average_time_sample} seconds.')
         
         average_time_sample_iter = 0
-        logger.info(f'Average time per iteration per sample: {average_time_sample_iter}')
+        logger.info(f'Average time per iteration: {average_time_sample_iter}')
     else:
         average_time_sample = total_time/sample_size
         logger.info(f'Average time per sample: {average_time_sample} seconds.')
         
         average_time_sample_iter = (average_time_sample/average_iter).item()
-        logger.info(f'Average time per iteration per sample: {average_time_sample_iter}')
+        logger.info(f'Average time per iteration: {average_time_sample_iter}')
 
     e_estimated = e_estimated.to(e_estimated.device)
     comparison = torch.unique(e_estimated == e_actual, return_counts=True)[1]
     if int(comparison.shape[0]) == 1:
         data_qubit_acc = 1
-        logger.info(f'Data qubit accuracy: {1}')
+        logger.info(f'Qubit accuracy: {1}')
     else:
         data_qubit_acc = float(comparison[1]) / (float(comparison[1]) + float(comparison[0]))
-        logger.info(f'Data qubit accuracy: {data_qubit_acc}')
+        logger.info(f'Qubit accuracy: {data_qubit_acc}')
 
     num_error = torch.sum(e_estimated != e_actual)
    
@@ -54,28 +54,28 @@ def report_metric(e_estimated, e_actual, iteration, time_iteration, check, conve
     
     if int(torch.sum(check)) == 0:
         logical_error_rate = 0
-        logger.info(f'Output logical check error rate is {logical_error_rate}')
+        logger.info(f'Output logical error rate: {logical_error_rate}')
     else:
         logical_error_rate = (int(torch.sum(check))/(check.size()[0]))
-        logger.info(f'Output logical check error rate is {logical_error_rate}')
+        logger.info(f'Output logical error rate: {logical_error_rate}')
 
     if torch.isinf(torch.sum(converge)) or torch.isnan(torch.sum(converge)):
         invoke_rate = 1
-        logger.info(f'The frequency of decoder invoke is {invoke_rate}')
+        logger.info(f'Decoder invoke rate: {invoke_rate}')
     else:
         if int(torch.sum(converge)) == 0:
             invoke_rate = 1
-            logger.info(f'The frequency of decoder invoke is {invoke_rate}')
+            logger.info(f'Decoder invoke rate: {invoke_rate}')
         else:
             invoke_rate = ((check.size()[0] - int(torch.sum(converge)))/(check.size()[0]))
-            logger.info(f'The frequency of decoder invoke is {invoke_rate}')
+            logger.info(f'Decoder invoke rate: {invoke_rate}')
 
     logger.info(f'Complete.')
 
     return total_time, average_time_sample, average_iter, average_time_sample_iter, data_qubit_acc, correction_acc, logical_error_rate, invoke_rate
 
 
-def save_metric(out_dict, curr_dir, batch_size, target_error, physical_error_rate):
+def save_metric(out_dict, curr_dir, batch_size, target_error, physical_error_rate, num_batches):
     """
     Saves decoding metrics for all decoders into a single YAML file.
     
@@ -91,7 +91,7 @@ def save_metric(out_dict, curr_dir, batch_size, target_error, physical_error_rat
         return dumper.represent_scalar('tag:yaml.org,2002:float', f"{value:.17e}")
 
     def format_time(value):
-        return f'{float(value):.17e}(s)'
+        return f'{float(value):.17e}'
 
     all_metrics_results = {}
 
@@ -106,22 +106,24 @@ def save_metric(out_dict, curr_dir, batch_size, target_error, physical_error_rat
 
         all_metrics_results[decoder_key] = {
             'algorithm': decoder_metrics['algorithm'],
-            'correction accuracy': float(decoder_metrics['correction_acc']),
             'qubit accuracy': float(decoder_metrics['data_qubit_acc']),
-            'average iteration': float(decoder_metrics['average_iter']),
-            'average time spent per sample per iteration': format_time(decoder_metrics['average_time_sample_iter']),
-            'average time spent per sample': format_time(decoder_metrics['average_time_sample']),
-            'total time spent': format_time(decoder_metrics['total_time']),
+            'correction accuracy': float(decoder_metrics['correction_acc']),
             'logical error rate': float(decoder_metrics['logical_error_rate']),
-            'decoder invoke rate': float(decoder_metrics['invoke_rate'])
+            'decoder invoke rate': float(decoder_metrics['invoke_rate']),
+            'average iteration': float(decoder_metrics['average_iter']),
+            'total time (s)': format_time(decoder_metrics['total_time']),
+            'average time per batch (s)': format_time(decoder_metrics['total_time']/num_batches),
+            'average time per sample (s)': format_time(decoder_metrics['average_time_sample']),
+            'average time per iteration (s)': format_time(decoder_metrics['average_time_sample_iter'])
         }
 
     all_metrics_results['decoder_full'] = {
-        'total time (all decoders)': format_time(total_time_sum),
-        'final logical error rate': last_logical_error_rate,
         'batch size': batch_size,
+        'batch count': num_batches,
         'target error': target_error,
-        'physical error rate': physical_error_rate
+        'physical error rate': physical_error_rate,
+        'logical error rate': last_logical_error_rate,
+        'total time (s)': format_time(total_time_sum)
     }
 
     os.makedirs(curr_dir, exist_ok=True)  # Ensure directory exists
@@ -158,12 +160,13 @@ def compute_avg_metrics(target_error, i, num_batches,
     logger.info(f'Average time per batch: {average_time_batch} seconds.')
     logger.info(f'Average time per sample: {average_time_sample} seconds.')
     logger.info(f'Average iterations per sample: {average_iter}')
-    logger.info(f'Average time per iteration per sample: {average_time_sample_iter}')
-    logger.info(f'Data qubit accuracy: {data_qubit_acc}')
+    logger.info(f'Average time per iteration: {average_time_sample_iter}')
+    logger.info(f'Qubit accuracy: {data_qubit_acc}')
     logger.info(f'Correction accuracy: {correction_acc}')
-    logger.info(f'Output logical check error rate is {logical_error_rate}')
-    logger.info(f'The frequency of decoder invoke is {invoke_rate}')
+    logger.info(f'Output logical error rate: {logical_error_rate}')
+    logger.info(f'Decoder invoke rate: {invoke_rate}')
 
     logger.info(f'Complete.')
 
     return total_time, average_time_sample, average_iter, average_time_sample_iter, data_qubit_acc, correction_acc, logical_error_rate, invoke_rate
+
