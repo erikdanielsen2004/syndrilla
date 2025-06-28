@@ -10,7 +10,7 @@ def clean_dir(base_path: str):
     shutil.rmtree(generated_path, ignore_errors=True)
 
 
-def generate_decoder(base_path: str, code, type, distance, float, decoder):
+def generate_decoder(base_path: str, code, type, distance, dtype, decoder):
     """
         Generate decoder yaml file from examples
     """
@@ -25,7 +25,7 @@ def generate_decoder(base_path: str, code, type, distance, float, decoder):
     # Read, modify, and write
     config = read_yaml(configuration_dict)
     if 'decoder' in config:
-        config['decoder']['dtype'] = float
+        config['decoder']['dtype'] = dtype
         config['decoder']['type'] = type
         if code == 'surface':
             config['decoder']['max_iter'] = distance*2*(distance-1)+1
@@ -157,25 +157,25 @@ def main():
     # load each different code settings from code_configuration.yaml file
     for decoder in config_list['decoder']:
         for code in config_list['code']:
-            for type in config_list['type']:
+            for check_type in config_list['type']:
                 for distance in config_list['distance']:
-                    for float in config_list['float']:
+                    for dtype in config_list['dtype']:
                         for probability in config_list['probability']:
                             if args.run_dir is None:
-                                dir_name = f'{decoder}_sweeping/{code}_{type}_{distance}_{float}_{probability}'
+                                dir_name = f'{decoder}_sweeping/{code}_{check_type}_{probability}_{distance}_{dtype}'
                             else:
-                                dir_name = f'{args.run_dir}/{code}_{type}_{distance}_{float}_{probability}'
+                                dir_name = f'{args.run_dir}/{code}_{check_type}_{probability}_{distance}_{dtype}'
                             base_path = os.path.join(base_dir, dir_name)
                             os.makedirs(base_path, exist_ok=True)
                             # clean up directionary
                             clean_dir(base_path)
                             if os.path.isdir(base_path):
                                 # create each yaml files
-                                generate_decoder(base_path, code, type, distance, float, decoder)
+                                generate_decoder(base_path, code, check_type, distance, dtype, decoder)
                                 generate_syndrome(base_path)
                                 generate_error(base_path, probability)
                                 generate_matrix(base_path, code, distance)
-                                generate_checker(base_path, type)
+                                generate_checker(base_path, check_type)
                                 
 
 if __name__ == '__main__':

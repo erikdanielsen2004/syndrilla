@@ -144,7 +144,8 @@ def compute_avg_metrics(target_error, i, num_batches,
                         logical_error_rate_all,
                         invoke_rate_all):
     logger.info(f'Reporting decoding metric for decoder {i}.')
-    total_time = total_time_all[i] / num_batches
+    total_time = total_time_all[i]
+    average_time_batch = total_time / num_batches
     average_time_sample = average_time_sample_all[i] / num_batches
     average_iter = average_iter_all[i] / num_batches
     average_time_sample_iter = average_time_sample_iter_all[i] / num_batches
@@ -152,7 +153,9 @@ def compute_avg_metrics(target_error, i, num_batches,
     correction_acc = correction_acc_all[i] / num_batches
     logical_error_rate = logical_error_rate_all[i] / num_batches
     invoke_rate = invoke_rate_all[i] / num_batches
-    logger.info(f'Total time for having <{target_error}> errors: {total_time} seconds.')
+    logger.info(f'Total time for <{target_error}> errors: {total_time} seconds.')
+    logger.info(f'Total number of batches: {num_batches}.')
+    logger.info(f'Average time per batch: {average_time_batch} seconds.')
     logger.info(f'Average time per sample: {average_time_sample} seconds.')
     logger.info(f'Average iterations per sample: {average_iter}')
     logger.info(f'Average time per iteration per sample: {average_time_sample_iter}')
