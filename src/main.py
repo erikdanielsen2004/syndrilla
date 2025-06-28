@@ -23,7 +23,7 @@ def parse_commandline_args():
     parse command line inputs
     """
     parser = argparse.ArgumentParser(
-        description='The syndrilla is a framework to run decoding simulation.')
+        description='A PyTorch-based numerical simulator for decoders in quantum error correction.')
     parser.add_argument('-r', '--run_dir', type=str, default='tests/test_outputs',
                         help = 'The run directory to store outputs.')
     parser.add_argument('-d', '--decoder_yaml', type=str, default=None,
@@ -34,9 +34,9 @@ def parse_commandline_args():
                         help = 'Path to logical error check yaml.')
     parser.add_argument('-s', '--syndrome_yaml', type=str, default=None,
                         help = 'Path to syndrome yaml.')
-    parser.add_argument('-bs', '--batch_size', type=int, default=1000,
+    parser.add_argument('-bs', '--batch_size', type=int, default=10000,
                         help = 'The number of samples run each batch.')
-    parser.add_argument('-te', '--target_error', type=int, default=1000,
+    parser.add_argument('-te', '--target_error', type=int, default=100,
                         help = 'The total number of error to stop.')
     parser.add_argument('-l', '--log_level', type=str, default='INFO',
                         help = 'Level of logger.')

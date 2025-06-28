@@ -5,16 +5,45 @@ import csv
 import os
 import shutil
 import sys
+import argparse
+from loguru import logger
 
 
-def main(decoder, batch_size, target_error, save_error_llr):
-    base_dir = f'zoo/{decoder}_sweeping'
-    subdirs = sorted([d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))])
+decoder_list = ["bposd", "bp", "lottery_bp", "bp_quant", "lottery_bp_quant"]
+
+
+def parse_commandline_args():
+    """
+    parse command line inputs
+    """
+    parser = argparse.ArgumentParser(
+        description='A PyTorch-based numerical simulator for decoders in quantum error correction.')
+    parser.add_argument('-r', '--run_dir', type=str, default=None,
+                        help = 'The run directory.')
+    parser.add_argument('-d', '--decoder', type=str, default='bposd',
+                        help = 'The run directory.')
+    parser.add_argument('-bs', '--batch_size', type=int, default=10000,
+                        help = 'The number of samples run each batch.')
+
+    return parser.parse_args()
+
+
+def main(target_error, save_error_llr):
+    args = parse_commandline_args()
+
+    assert os.path.isdir(args.run_dir), logger.error(f'Illegal input run_dir: {args.run_dir}.')
+    run_dir = args.run_dir
+    assert args.decoder in decoder_list, logger.error(f'Illegal input decoder: {args.decoder}; legal values: {decoder_list}.')
+    decoder = args.decoder
+    batch_size = args.batch_size
+
+    subdirs = sorted([d for d in os.listdir(run_dir) if os.path.isdir(os.path.join(run_dir, d))], reverse=True)
 
     for subdir in subdirs:
         print(f'\n=== folder {subdir} ===')
+
         # checking whether the decoder is hx or hz
-        folder_path = os.path.join(base_dir, subdir)
+        folder_path = os.path.join(run_dir, subdir)
         if 'hx' in subdir:
             decoder_yaml = os.path.join(folder_path, f'{decoder}_hx.decoder.yaml')
             check_yaml = os.path.join(folder_path, 'lx.check.yaml')
@@ -34,9 +63,10 @@ def main(decoder, batch_size, target_error, save_error_llr):
             f'-c={check_yaml}',
             f'-s={syndrome_yaml}',
             f'-bs={batch_size}',
-            f'-te={target_error}',
-            f'-se={save_error_llr}'
+            f'-te={target_error}'
         ]
+        if save_error_llr:
+            cmd.append('-se')
 
         print('Command: ', ' '.join(cmd))
         result = subprocess.run(cmd, capture_output=True, text=True)
@@ -47,9 +77,4 @@ def main(decoder, batch_size, target_error, save_error_llr):
 
 
 if __name__ == '__main__':
-    decoder_list = ["bposd", "bp", "lottery_bp", "bp_quant", "lottery_bp_quant"]
-    batch_size = 50000
-    target_error = 100
-    save_error_llr = False
-    for decoder in decoder_list:
-        main(decoder, batch_size, target_error, save_error_llr)
+    main(target_error=100, save_error_llr=False)
