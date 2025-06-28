@@ -10,8 +10,6 @@ import subprocess
 
 from loguru import logger
 
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from src.utils import bcolors
 from src.decoder import create_decoder
 from src.error_model import create_error_model
@@ -42,8 +40,8 @@ def parse_commandline_args():
                         help = 'The total number of error to stop.')
     parser.add_argument('-l', '--log_level', type=str, default='INFO',
                         help = 'Level of logger.')
-    parser.add_argument('-se', '--save_error_llr', type=str, default=False,
-                        help = 'Whether to save error llr.')
+    parser.add_argument('-se', '--save_error_llr', action='store_true',
+                        help = 'Specified to save error llr.')
 
     return parser.parse_args()
 
