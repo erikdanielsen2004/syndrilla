@@ -7,9 +7,10 @@ import shutil
 import sys
 import argparse
 from loguru import logger
+from pathlib import Path
 
 
-decoder_list = ["bposd", "bp", "lottery_bp", "bp_quant", "lottery_bp_quant"]
+decoder_list = ["bposd", "bposd_quant", "lottery_bp", "lottery_bp_quant", "lottery_bposd", "lottery_bposd_quant"]
 
 
 def parse_commandline_args():
@@ -17,7 +18,7 @@ def parse_commandline_args():
     parse command line inputs
     """
     parser = argparse.ArgumentParser(
-        description='A PyTorch-based numerical simulator for decoders in quantum error correction.')
+        description='Test code for the decoder zoo.')
     parser.add_argument('-r', '--run_dir', type=str, default=None,
                         help = 'The run directory.')
     parser.add_argument('-d', '--decoder', type=str, default='bposd',
@@ -65,15 +66,23 @@ def main(target_error, save_error_llr):
             f'-bs={batch_size}',
             f'-te={target_error}'
         ]
+
         if save_error_llr:
             cmd.append('-se')
 
-        print('Command: ', ' '.join(cmd))
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        folder_path = Path(folder_path)
+        results_files = list(folder_path.glob("result*"))
 
-        # Print stdout/stderr for debugging
-        print('  --> STDOUT:\n', result.stdout)
-        print('  --> STDERR:\n', result.stderr)
+        if results_files:
+            print("Results exist: ", results_files[0])
+        else:
+            print("Results do not exist.")
+            print('Run command: ', ' '.join(cmd))
+            result = subprocess.run(cmd, capture_output=True, text=True)
+
+            # Print stdout/stderr for debugging
+            print('  --> STDOUT:\n', result.stdout)
+            print('  --> STDERR:\n', result.stderr)
 
 
 if __name__ == '__main__':

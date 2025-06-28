@@ -1,6 +1,6 @@
 from src.utils import read_yaml, write_yaml
 from collections import OrderedDict
-import os, shutil, copy, itertools
+import os, shutil, copy, itertools, argparse
 from loguru import logger
 
 
@@ -136,7 +136,21 @@ def generate_checker(base_path: str, type):
     write_yaml(target_file, config)
 
 
+def parse_commandline_args():
+    """
+    parse command line inputs
+    """
+    parser = argparse.ArgumentParser(
+        description='Generate sweeping configurations.')
+    parser.add_argument('-r', '--run_dir', type=str, default=None,
+                        help = 'The run directory to store outputs. This should be a sub directory under zoo.')
+
+    return parser.parse_args()
+
+
 def main():
+    args = parse_commandline_args()
+
     logger.remove()
     base_dir = 'zoo/'
     config_list = read_yaml(base_dir + 'script/code_configuration.yaml')
@@ -147,7 +161,10 @@ def main():
                 for distance in config_list['distance']:
                     for float in config_list['float']:
                         for probability in config_list['probability']:
-                            dir_name = f'{decoder}_sweeping/{code}_{type}_{distance}_{float}_{probability}'
+                            if args.run_dir is None:
+                                dir_name = f'{decoder}_sweeping/{code}_{type}_{distance}_{float}_{probability}'
+                            else:
+                                dir_name = f'{args.run_dir}/{code}_{type}_{distance}_{float}_{probability}'
                             base_path = os.path.join(base_dir, dir_name)
                             os.makedirs(base_path, exist_ok=True)
                             # clean up directionary
