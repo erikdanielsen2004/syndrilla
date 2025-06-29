@@ -20,11 +20,11 @@ def main():
 
     total_sim = 0
     total_result = 0
-    for subfolder in root_dir.iterdir():
+    for subfolder in sorted(root_dir.iterdir()):
         if subfolder.is_dir():
             total_sim += 1
-            results_files = sorted(list(subfolder.glob("result*")), reverse=True)
-
+            results_files = list(subfolder.glob("result*"))
+            
             if results_files:
                 print(f"{subfolder}: result ready.")
                 total_result += 1
