@@ -153,8 +153,8 @@ def main():
 
     logger.remove()
     base_dir = 'zoo/'
-    config_list = read_yaml(base_dir + 'script/code_configuration.yaml')
-    # load each different code settings from code_configuration.yaml file
+    config_list = read_yaml(base_dir + 'script/sweeping_configs.yaml')
+    # load each different code settings from sweeping_configs.yaml file
     for decoder in config_list['decoder']:
         for code in config_list['code']:
             for check_type in config_list['type']:
