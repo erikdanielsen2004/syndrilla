@@ -23,7 +23,7 @@ def main():
     for subfolder in root_dir.iterdir():
         if subfolder.is_dir():
             total_sim += 1
-            results_files = list(subfolder.glob("result*"))
+            results_files = sorted(list(subfolder.glob("result*")), reverse=True)
 
             if results_files:
                 print(f"{subfolder}: result ready.")
