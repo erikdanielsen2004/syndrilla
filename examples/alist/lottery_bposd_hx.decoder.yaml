@@ -6,5 +6,4 @@ decoder:
   parity_matrix_hz: examples/alist/hz.matrix.yaml
   dtype: float64
   random_machine: sobol
-  int_width: 3
-  frac_width: 4
+  
