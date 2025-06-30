@@ -8,11 +8,11 @@ from loguru import logger
 
 sys.path.append(os.getcwd())
 
-from src.decoder import create_decoder
-from src.error_model import create_error_model
-from src.syndrome import create_syndrome
-from src.metric import report_metric, compute_avg_metrics
-from src.logical_check import create_check
+from syndrilla.decoder import create_decoder
+from syndrilla.error_model import create_error_model
+from syndrilla.syndrome import create_syndrome
+from syndrilla.metric import report_metric, compute_avg_metrics
+from syndrilla.logical_check import create_check
 
 
 def get_gpu_memory_utilization(gpu_index=0):

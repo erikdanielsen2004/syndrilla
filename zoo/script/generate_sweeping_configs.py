@@ -1,4 +1,4 @@
-from src.utils import read_yaml, write_yaml
+from syndrilla.utils import read_yaml, write_yaml
 from collections import OrderedDict
 import os, shutil, copy, itertools, argparse
 from loguru import logger
