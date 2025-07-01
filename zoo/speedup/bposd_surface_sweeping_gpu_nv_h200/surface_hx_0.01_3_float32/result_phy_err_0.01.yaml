@@ -1,0 +1,29 @@
+decoder_0:
+  algorithm: bp_norm_min_sum
+  qubit accuracy: 0.9989046153846154
+  correction accuracy: 0.8958006102079296
+  logical error rate: 0.0032799999999999995
+  decoder invoke rate: 1.0
+  average iteration: 1.0808199644088745
+  total time (s): '1.47372484207153320e-01'
+  average time per batch (s): '2.94744968414306641e-02'
+  average time per sample (s): '2.94744968414306615e-06'
+  average time per iteration (s): '2.72994279355947545e-06'
+decoder_1:
+  algorithm: osd_0
+  qubit accuracy: 0.9989292307692308
+  correction accuracy: 0.8978193388498422
+  logical error rate: 0.0021599999999999996
+  decoder invoke rate: 0.00194
+  average iteration: 10.71567153930664
+  total time (s): '1.29868745803833008e-01'
+  average time per batch (s): '2.59737491607666023e-02'
+  average time per sample (s): '2.59737491607666026e-06'
+  average time per iteration (s): '2.42466741127229123e-07'
+decoder_full:
+  batch size: 10000
+  batch count: 5
+  target error: 100
+  physical error rate: 0.01
+  logical error rate: 0.0021599999999999996
+  total time (s): '2.77241230010986328e-01'
