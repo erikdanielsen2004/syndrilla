@@ -463,6 +463,7 @@ def main():
     ax.grid(True)
     fig.tight_layout()
     plt.savefig(f"{base_dir}/{metric}_gpu.pdf", bbox_inches="tight", dpi=300)
+    plt.savefig(f"{base_dir}/{metric}_gpu.png", bbox_inches="tight", dpi=300)
     plt.close(fig)
     
     fig, ax = plt.subplots(figsize=(FIGWIDHT, FIGHEIGHT))
@@ -473,6 +474,7 @@ def main():
     ax.grid(True)
     fig.tight_layout()
     plt.savefig(f"{base_dir}/{metric}_gpu.pdf", bbox_inches="tight", dpi=300)
+    plt.savefig(f"{base_dir}/{metric}_gpu.png", bbox_inches="tight", dpi=300)
     plt.close(fig)
 
     
@@ -485,6 +487,7 @@ def main():
     ax.grid(True)
     fig.tight_layout()
     plt.savefig(f"{base_dir}/{metric}_data_format.pdf", bbox_inches="tight", dpi=300)
+    plt.savefig(f"{base_dir}/{metric}_data_format.png", bbox_inches="tight", dpi=300)
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(FIGWIDHT, FIGHEIGHT))
@@ -495,6 +498,7 @@ def main():
     ax.grid(True)
     fig.tight_layout()
     plt.savefig(f"{base_dir}/{metric}_data_format.pdf", bbox_inches="tight", dpi=300)
+    plt.savefig(f"{base_dir}/{metric}_data_format.png", bbox_inches="tight", dpi=300)
     plt.close(fig)
 
 
@@ -507,6 +511,7 @@ def main():
     ax.grid(True)
     fig.tight_layout()
     plt.savefig(f"{base_dir}/{metric}_distance.pdf", bbox_inches="tight", dpi=300)
+    plt.savefig(f"{base_dir}/{metric}_distance.png", bbox_inches="tight", dpi=300)
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(FIGWIDHT, FIGHEIGHT))
@@ -517,6 +522,7 @@ def main():
     ax.grid(True)
     fig.tight_layout()
     plt.savefig(f"{base_dir}/{metric}_distance.pdf", bbox_inches="tight", dpi=300)
+    plt.savefig(f"{base_dir}/{metric}_distance.png", bbox_inches="tight", dpi=300)
     plt.close(fig)
 
 
@@ -529,6 +535,7 @@ def main():
     ax.grid(True)
     fig.tight_layout()
     plt.savefig(f"{base_dir}/{metric}_cpu_speedup.pdf", bbox_inches="tight", dpi=300)
+    plt.savefig(f"{base_dir}/{metric}_cpu_speedup.png", bbox_inches="tight", dpi=300)
     plt.close(fig)
 
 
@@ -539,6 +546,7 @@ def main():
     ax.grid(True)
     fig.tight_layout()
     plt.savefig(f"{base_dir}/{metric}_batch.pdf", bbox_inches="tight", dpi=300)
+    plt.savefig(f"{base_dir}/{metric}_batch.png", bbox_inches="tight", dpi=300)
     plt.close(fig)
 
 
