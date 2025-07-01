@@ -534,10 +534,11 @@ def main():
 
     # Plot batch
     fig, ax = plt.subplots(figsize=(FIGWIDHT, FIGHEIGHT))
+    metric = 'time'
     plot_batch_compare(ax)
     ax.grid(True)
     fig.tight_layout()
-    plt.savefig(f"{base_dir}/distance.pdf", bbox_inches="tight", dpi=300)
+    plt.savefig(f"{base_dir}/{metric}_batch.pdf", bbox_inches="tight", dpi=300)
     plt.close(fig)
 
 

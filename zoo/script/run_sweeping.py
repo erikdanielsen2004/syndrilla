@@ -25,6 +25,8 @@ def parse_commandline_args():
                         help = 'The decoder.')
     parser.add_argument('-bs', '--batch_size', type=int, default=10000,
                         help = 'The number of samples run each batch.')
+    parser.add_argument('-l', '--log_level', type=str, default='SUCCESS',
+                        help = 'The log level to record runtime statistics.')
 
     return parser.parse_args()
 
@@ -37,6 +39,7 @@ def main(target_error):
     assert args.decoder in decoder_list, logger.error(f'Illegal input decoder: {args.decoder}; legal values: {decoder_list}.')
     decoder = args.decoder
     batch_size = args.batch_size
+    log_level = args.log_level
 
     subdirs = sorted([d for d in os.listdir(run_dir) if os.path.isdir(os.path.join(run_dir, d))], reverse=True)
 
@@ -64,7 +67,8 @@ def main(target_error):
             f'-c={check_yaml}',
             f'-s={syndrome_yaml}',
             f'-bs={batch_size}',
-            f'-te={target_error}'
+            f'-te={target_error}',
+            f'-l={log_level}'
         ]
 
         folder_path = Path(folder_path)
