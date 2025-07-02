@@ -8,9 +8,11 @@ Make sure you have [Anaconda](https://www.anaconda.com/) installed before the st
 
 ### Option 1: pip installation
 1. ```conda env create -f environment.yaml```
+   - The ```name: syndrilla``` in ```evironment.yaml``` can be updated to a preferred one.
 2. ```conda activate syndrilla```
 3. ```pip install syndrilla```
 4. Validate installation via ```syndrilla -h``` in the command line or ```import syndrilla``` in python code
+   - If you want to validate the simulation results against BPOSD, you need to change python to version 3.10. Then install [BPOSD](https://github.com/quantumgizmos/bp_osd) and run ```python tests/validate_bposd.py```
 
 ### Option 2: source installation
 This is the developer mode, where you can edit the source code with live changes reflected for simulation.
@@ -20,10 +22,6 @@ This is the developer mode, where you can edit the source code with live changes
 5. Install [PyTorch 2.x](https://pytorch.org/)
 6. ```python3 -m pip install -e . --no-deps```
 7. Validate installation via ```syndrilla -h``` in the command line or ```import syndrilla``` in python code
-
-*Note that the ```name: syndrilla``` in ```evironment.yaml``` can be updated to a preferred one.*
-
-*If you want to validate the simulation results against BPOSD, you need to change python to version 3.10. Then install [BPOSD](https://github.com/quantumgizmos/bp_osd) and run ```python tests/validate_bposd.py```*
 
 ## Simulation results
 We show some of the simulation results as below.
