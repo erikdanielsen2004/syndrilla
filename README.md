@@ -21,8 +21,9 @@ This is the developer mode, where you can edit the source code with live changes
 6. ```python3 -m pip install -e . --no-deps```
 7. Validate installation via ```syndrilla -h``` in the command line or ```import syndrilla``` in python code
 
-*If you want to validate the simulation results against BPOSD, you need to change python to version 3.10. Then install [BPOSD](https://github.com/quantumgizmos/bp_osd) and run ```python tests/validate_bposd.py```*
+*Note that the ```name: syndrilla``` in ```evironment.yaml``` can be updated to a preferred one.*
 
+*If you want to validate the simulation results against BPOSD, you need to change python to version 3.10. Then install [BPOSD](https://github.com/quantumgizmos/bp_osd) and run ```python tests/validate_bposd.py```*
 
 ## Simulation results
 We show some of the simulation results as below.
