@@ -70,7 +70,7 @@ def main():
     print(bcolors.Magenta + ascii_banner + bcolors.ENDC)
     ascii_banner = pyfiglet.figlet_format('UnaryLab')
     print(bcolors.Yellow + ascii_banner + bcolors.ENDC)
-    ascii_banner = pyfiglet.figlet_format('https://github.com/UNARY-Lab/syndrilla', font='term')
+    ascii_banner = pyfiglet.figlet_format('https://github.com/UnaryLab/syndrilla', font='term')
     print(bcolors.UNDERLINE + bcolors.Green + ascii_banner + bcolors.ENDC)
 
     logger.success(f'\n----------------------------------------------\nStep 1: Create decoder\n----------------------------------------------')

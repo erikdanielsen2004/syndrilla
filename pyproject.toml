@@ -32,8 +32,8 @@ dependencies = [
 syndrilla = "syndrilla.main:main"
 
 [project.urls]
-Homepage = "https://github.com/UNARY-Lab/syndrilla"
-Issues = "https://github.com/UNARY-Lab/syndrilla/issues"
+Homepage = "https://github.com/UnaryLab/syndrilla"
+Issues = "https://github.com/UnaryLab/syndrilla/issues"
 
 # Tell hatch where the source is
 [tool.hatch.build]
