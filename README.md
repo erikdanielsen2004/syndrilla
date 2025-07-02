@@ -32,7 +32,7 @@ GPUs: AMD Insticnt MI210, NVIDIA A100, NVIDIA H200
 
 CPU: Intel i9-13900K
 
-### Comparison of GPU
+### Comparison across GPUs
 <table>
   <tr>
     <td align="center">
@@ -45,7 +45,7 @@ CPU: Intel i9-13900K
 </table>
 
 
-### Comparison of data format
+### Comparison across data formats
 <table>
   <tr>
     <td align="center">
@@ -58,7 +58,7 @@ CPU: Intel i9-13900K
 </table>
 
 
-### Comparison of distance
+### Comparison across distances
 <table>
   <tr>
     <td align="center">
@@ -71,7 +71,7 @@ CPU: Intel i9-13900K
 </table>
 
 
-### Comparison of batch size and against CPU
+### Comparison across batch sizes and against CPU
 <table>
   <tr>
     <td align="center">
