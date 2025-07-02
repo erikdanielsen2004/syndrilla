@@ -6,18 +6,17 @@ All provided installation methods allow running ```syndrilla``` in the command l
 
 Make sure you have [Anaconda](https://www.anaconda.com/) installed before the steps below.
 
-### Option 1: pip installation (python>=3.9)
-1. ```conda create --name syndrilla python```
+### Option 1: pip installation
+1. ```conda env create -f environment.yaml```
 2. ```conda activate syndrilla```
 3. ```pip install syndrilla```
 4. Validate installation via ```syndrilla -h``` in the command line or ```import syndrilla``` in python code
 
 ### Option 2: source installation
 This is the developer mode, where you can edit the source code with live changes reflected for simulation.
-1. ```git clone``` [this repo](https://github.com/UNARY-Lab/syndrilla) and cd to the repo dir.
-2. ```conda create --name syndrilla python```
+1. ```git clone``` [this repo](https://github.com/UNARY-Lab/syndrilla) and ```cd``` to the repo dir.
+2. ```conda env create -f environment.yaml```
 3. ```conda activate syndrilla```
-4. ```conda install -c conda-forge pyyaml yamlordereddictloader pytest loguru numpy scipy pyfiglet pynvml```
 5. Install [PyTorch 2.x](https://pytorch.org/)
 6. ```python3 -m pip install -e . --no-deps```
 7. Validate installation via ```syndrilla -h``` in the command line or ```import syndrilla``` in python code
