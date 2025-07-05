@@ -64,7 +64,7 @@ def main():
         colors = plt.get_cmap("tab10").colors[:3]
         markers = ['^', 'o', 's']
 
-        color_labels = ['float64', 'float32', 'float16']
+        color_labels = ['FP64', 'FP32', 'FP16']
         marker_labels = ['MI210', 'A100', 'H200']
 
         color_proxies = [Line2D([0], [0], color=c, lw=1) for c in colors]
@@ -194,9 +194,9 @@ def main():
         elif metric == 'accuracy':
             ax.set_ylabel("Logical error rate")
         # ax.set_xscale("log")
-        # ax.set_yscale("log")
+        ax.set_yscale("log")
         ax.set_xticks(x_ticks)
-        ax.set_xticklabels([f'float{str(x)}' for x in x_ticks])
+        ax.set_xticklabels([f'FP{str(x)}' for x in x_ticks])
 
 
     def plot_distance_compare(ax, distance='11', metric='time'):
