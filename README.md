@@ -19,9 +19,8 @@ This is the developer mode, where you can edit the source code with live changes
 1. ```git clone``` [this repo](https://github.com/UnaryLab/syndrilla) and ```cd``` to the repo dir.
 2. ```conda env create -f environment.yaml```
 3. ```conda activate syndrilla```
-5. Install [PyTorch 2.x](https://pytorch.org/)
-6. ```python3 -m pip install -e . --no-deps```
-7. Validate installation via ```syndrilla -h``` in the command line or ```import syndrilla``` in python code
+4. ```python3 -m pip install -e . --no-deps```
+5. Validate installation via ```syndrilla -h``` in the command line or ```import syndrilla``` in python code
 
 ## Simulation results
 We show some of the simulation results as below.
