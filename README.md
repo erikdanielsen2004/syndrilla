@@ -19,6 +19,7 @@ Make sure you have [Anaconda](https://www.anaconda.com/) installed before the st
 This is the developer mode, where you can edit the source code with live changes reflected for simulation.
 1. ```git clone``` [this repo](https://github.com/UnaryLab/syndrilla) and ```cd``` to the repo dir.
 2. ```conda env create -f environment.yaml```
+   - The ```name: syndrilla``` in ```evironment.yaml``` can be updated to a preferred one.
 3. ```conda activate syndrilla```
 4. ```python3 -m pip install -e . --no-deps```
 5. Validate installation via ```syndrilla -h``` in the command line or ```import syndrilla``` in python code
