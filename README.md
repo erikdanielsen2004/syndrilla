@@ -7,11 +7,12 @@ All provided installation methods allow running ```syndrilla``` in the command l
 Make sure you have [Anaconda](https://www.anaconda.com/) installed before the steps below.
 
 ### Option 1: pip installation
-1. ```conda env create -f environment.yaml```
+1. ```git clone``` [this repo](https://github.com/UnaryLab/syndrilla) and ```cd``` to the repo dir.
+2. ```conda env create -f environment.yaml```
    - The ```name: syndrilla``` in ```evironment.yaml``` can be updated to a preferred one.
-2. ```conda activate syndrilla```
-3. ```pip install syndrilla```
-4. Validate installation via ```syndrilla -h``` in the command line or ```import syndrilla``` in python code
+3. ```conda activate syndrilla```
+4. ```pip install syndrilla```
+5. Validate installation via ```syndrilla -h``` in the command line or ```import syndrilla``` in python code
    - If you want to validate the simulation results against BPOSD, you need to change python to version 3.10. Then install [BPOSD](https://github.com/quantumgizmos/bp_osd) and run ```python tests/validate_bposd.py```
 
 ### Option 2: source installation
