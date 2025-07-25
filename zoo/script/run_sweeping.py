@@ -10,7 +10,7 @@ from loguru import logger
 from pathlib import Path
 
 
-decoder_list = ["bposd", "bposd_quant", "lottery_bp", "lottery_bp_quant", "lottery_bposd", "lottery_bposd_quant"]
+decoder_list = ['bposd', 'bposd_quant', 'lottery_bp', 'lottery_bp_quant', 'lottery_bposd', 'lottery_bposd_quant']
 
 
 def parse_commandline_args():
@@ -48,6 +48,7 @@ def main(target_error):
 
         # checking whether the decoder is hx or hz
         folder_path = os.path.join(run_dir, subdir)
+
         if 'hx' in subdir:
             decoder_yaml = os.path.join(folder_path, f'{decoder}_hx.decoder.yaml')
             check_yaml = os.path.join(folder_path, 'lx.check.yaml')
@@ -72,12 +73,19 @@ def main(target_error):
         ]
 
         folder_path = Path(folder_path)
-        results_files = list(folder_path.glob("result*"))
+        results_files = list(folder_path.glob('result*'))
 
         if results_files:
-            print("Results exist: ", results_files[0])
+            print('Results exist: ', results_files[0])
+            cmd.append(f'-ckpt={results_files[0]}')
+            print('Run command: ', ' '.join(cmd))
+            result = subprocess.run(cmd, capture_output=True, text=True)
+
+            # Print stdout/stderr for debugging
+            print('  --> STDOUT:\n', result.stdout)
+            print('  --> STDERR:\n', result.stderr)
         else:
-            print("Results do not exist.")
+            print('Results do not exist.')
             print('Run command: ', ' '.join(cmd))
             result = subprocess.run(cmd, capture_output=True, text=True)
 

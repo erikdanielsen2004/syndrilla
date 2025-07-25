@@ -141,9 +141,11 @@ class create(torch.nn.Module):
 
         logger.info(f'Complete.')
 
+        ones_converge = torch.ones_like(io_dict['converge'])
         io_dict.update({
             'e_v': final_result,
-            'iter': max_iter
+            'iter': max_iter,
+            'converge': ones_converge
         })
         return io_dict
 
