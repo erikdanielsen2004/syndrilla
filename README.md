@@ -84,7 +84,7 @@ CPU: Intel i9-13900K
 
 
 ## Citation
-If you use Syndrilla in your research, please cite following paper:
+If you use Syndrilla in your research, please cite the following paper:
 
 ```bibtex
 @inproceedings{2025_qce_syndrilla,
