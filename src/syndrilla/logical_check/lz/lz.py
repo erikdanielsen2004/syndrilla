@@ -28,19 +28,6 @@ class create():
             converge_index = torch.where(converge == 0)[0]
             logical_check[converge_index] = 1
         logger.info(f'Logical check rate measurement complete.')
-        return logical_check
-    
-    
-    def check_osd(self, e_v_total, error_vector, lz_matrix, converge=None):
-        logger.info(f'Measuring logical check rate.')
-        e_v_total = e_v_total.to(error_vector.device)
-        lz_matrix = torch.tensor(lz_matrix, device = error_vector.device, dtype = error_vector.dtype).unsqueeze(0)
-        
-        logical_check = ((e_v_total + error_vector)%2).to(e_v_total.dtype).unsqueeze(1)
-
-        logical_check = torch.where(torch.sum((logical_check * lz_matrix) % 2, dim=(1, 2)) % 2 == 1, 1, 0)
-        logger.info(f'Logical check rate measurement complete.')
-        return logical_check
-        
+        return logical_check    
     
     

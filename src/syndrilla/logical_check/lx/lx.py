@@ -30,14 +30,3 @@ class create():
         logger.info(f'Logical check rate measurement complete.')
         return logical_check
     
-        
-    def check_osd(self, e_v_total, error_vector, lx_matrix, converge=None):
-        logger.info(f'Measuring logical check rate.')
-        e_v_total = e_v_total.to(error_vector.device)
-        lx_matrix = torch.tensor(lx_matrix, device = error_vector.device, dtype = error_vector.dtype).unsqueeze(0)
-        
-        logical_check = ((e_v_total + error_vector)%2).to(e_v_total.dtype).unsqueeze(1)
-
-        logical_check = torch.where(torch.sum((logical_check * lx_matrix) % 2, dim=(1, 2)) % 2 == 1, 1, 0)
-        logger.info(f'Logical check rate measurement complete.')
-        return logical_check
