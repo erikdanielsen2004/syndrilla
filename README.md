@@ -81,3 +81,16 @@ CPU: Intel i9-13900K
     </td>
   </tr>
 </table>
+
+
+## Citation
+If you use Syndrilla in your research, please cite the following paper:
+
+```bibtex
+@inproceedings{2025_qce_syndrilla,
+	title={{Syndrilla: Simulating Decoders for Quantum Error Correction using PyTorch}},
+	author={Yanzhang Zhu and Chen-Yu Peng and Yun Hao Chen and Siyuan Niu and Yeong-Luh Ueng and Di Wu},
+	booktitle={International Conference on Quantum Computing and Engineering},
+	year={2025}
+} 
+```
