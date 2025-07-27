@@ -1,2 +1,2 @@
 check:
-  type: lz
+  check_type: lz

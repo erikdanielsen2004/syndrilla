@@ -1,3 +1,3 @@
 check:
-  type: lx
+  check_type: lx
   
