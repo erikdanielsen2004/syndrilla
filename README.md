@@ -152,7 +152,7 @@ To change the configuration of the simulator, user need to update the YAML files
 For example, if you want to use a different physical error rate, you need to find the input error YAML (e.g., ```examples/alist/bsc.error.yaml```) and update the ```rate``` field.
 
 ### Resume from checkpoint
-If previous run is terminated by accident, the simulation can resume by setting the ```-ckpt``` to the checkpoint yaml file, the results of a previous run (e.g., ```tests/test_outputs=result_phy_err_0.01.yaml```).
+If previous run is terminated by accident, the simulation can resume by setting ```-ckpt``` to the checkpoint YAML file, the results of a previous run (e.g., ```tests/test_outputs=result_phy_err_0.01.yaml```).
 
 ```command
 syndrilla -r=tests/test_outputs 
