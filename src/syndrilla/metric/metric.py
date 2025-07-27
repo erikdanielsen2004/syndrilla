@@ -59,7 +59,7 @@ def report_metric(e_estimated, e_actual, iteration, time_iteration, check, conve
             invoke_rate = 1.0
             logger.info(f'Decoder invoke rate: {invoke_rate}')
         else:
-            invoke_rate = ((int(torch.sum(converge)))/(check.size()[0]))
+            invoke_rate = 1.0 - ((int(torch.sum(converge)))/(check.size()[0]))
             logger.info(f'Decoder invoke rate: {invoke_rate}')
 
     result = (e_estimated == e_actual).all(dim=1).int()
@@ -89,15 +89,31 @@ def report_metric(e_estimated, e_actual, iteration, time_iteration, check, conve
     else:
         logical_error_rate = (int(torch.sum(check))/(check.size()[0]))
         logger.info(f'Output logical error rate: {logical_error_rate}')
+    
+    converge_fail = torch.where((check == 1) & (coverge_next == 1), torch.tensor(1), torch.tensor(0))
+    if int(torch.sum(converge_fail)) == 0:
+        converge_fail_rate = 0
+        logger.info(f'Output converge failure rate: {converge_fail_rate}')
+    else:
+        converge_fail_rate = (int(torch.sum(converge_fail))/(check.size()[0]))
+        logger.info(f'Output converge failure rate: {converge_fail_rate}')
+    
+    converge_succ = torch.where((check == 0) & (coverge_next == 1), torch.tensor(1), torch.tensor(0))
+    if int(torch.sum(converge_fail)) == 0:
+        converge_succ_rate = 0
+        logger.info(f'Output converge failure rate: {converge_succ_rate}')
+    else:
+        converge_succ_rate = (int(torch.sum(converge_succ))/(check.size()[0]))
+        logger.info(f'Output converge failure rate: {converge_succ_rate}')
 
     logger.info(f'Complete.')
 
     return total_time, average_time_sample, average_iter, average_time_sample_iter, \
         data_qubit_acc, data_frame_error_rate, synd_frame_error_rate, \
-            correction_acc, logical_error_rate, invoke_rate
+            correction_acc, logical_error_rate, invoke_rate, converge_fail_rate, converge_succ_rate
 
 
-def save_metric(out_dict, curr_dir, batch_size, target_error, physical_error_rate, num_batches, error_reach, file_name):
+def save_metric(out_dict, curr_dir, batch_size, target_error, dtype, physical_error_rate, num_batches, error_reach, file_name):
     """
     Saves decoding metrics for all decoders into a single YAML file.
     
@@ -125,7 +141,6 @@ def save_metric(out_dict, curr_dir, batch_size, target_error, physical_error_rat
 
         total_time_sum += float(decoder_metrics['total_time'])
         last_logical_error_rate = float(decoder_metrics['logical_error_rate'])
-
         all_metrics_results[decoder_key] = {
             'algorithm': decoder_metrics['algorithm'],
             'data qubit accuracy': float(decoder_metrics['data_qubit_acc']),
@@ -133,6 +148,8 @@ def save_metric(out_dict, curr_dir, batch_size, target_error, physical_error_rat
             'data frame error rate': float(decoder_metrics['data_frame_error_rate']),
             'syndrome frame error rate': float(decoder_metrics['synd_frame_error_rate']),
             'logical error rate': float(decoder_metrics['logical_error_rate']),
+            'converge failure rate': float(decoder_metrics['converge_fail_rate']),
+            'converge success rate': float(decoder_metrics['converge_succ_rate']),
             'decoder invoke rate': float(decoder_metrics['invoke_rate']),
             'average iteration': float(decoder_metrics['average_iter']),
             'total time (s)': format_time(decoder_metrics['total_time']),
@@ -147,6 +164,7 @@ def save_metric(out_dict, curr_dir, batch_size, target_error, physical_error_rat
         'batch count': num_batches,
         'target error': target_error,
         'target error reached': error_reach,
+        'data type': dtype,
         'physical error rate': physical_error_rate,
         'logical error rate': last_logical_error_rate,
         'total time (s)': format_time(total_time_sum)
@@ -172,7 +190,9 @@ def compute_avg_metrics(target_error, i, num_batches,
                         synd_frame_error_rate_all,
                         correction_acc_all,
                         logical_error_rate_all,
-                        invoke_rate_all):
+                        invoke_rate_all,
+                        converge_fail_all,
+                        converge_succ_all):
     logger.info(f'Reporting decoding metric for decoder {i}.')
     total_time = total_time_all[i]
     average_time_batch = total_time / num_batches
@@ -185,6 +205,8 @@ def compute_avg_metrics(target_error, i, num_batches,
     correction_acc = correction_acc_all[i] / num_batches
     logical_error_rate = logical_error_rate_all[i] / num_batches
     invoke_rate = invoke_rate_all[i] / num_batches
+    converge_fail = converge_fail_all[i] / num_batches
+    converge_succ = converge_succ_all[i] / num_batches
     logger.info(f'Total time for <{target_error}> errors: {total_time} seconds.')
     logger.info(f'Total number of batches: {num_batches}.')
     logger.info(f'Average time per batch: {average_time_batch} seconds.')
@@ -197,12 +219,14 @@ def compute_avg_metrics(target_error, i, num_batches,
     logger.info(f'Syndrome frame error rate: {synd_frame_error_rate}')
     logger.info(f'Output logical error rate: {logical_error_rate}')
     logger.info(f'Decoder invoke rate: {invoke_rate}')
+    logger.info(f'converge failure rate: {converge_fail}')
+    logger.info(f'Converge success rate: {converge_succ}')
 
     logger.info(f'Complete.')
 
     return total_time, average_time_sample, average_iter, average_time_sample_iter, data_qubit_acc, \
         data_frame_error_rate, synd_frame_error_rate, correction_acc, logical_error_rate, \
-            invoke_rate
+            invoke_rate, converge_fail, converge_succ
 
 
 def load_checkpoint_yaml(path):
@@ -218,6 +242,7 @@ def load_checkpoint_yaml(path):
         batch_count = int(full.get('batch count', 0))
         target_error = int(full.get('target error', 0))
         error_reach = int(full.get('target error reached', 0))
+        dtype = full.get('data type', 0)
         physical_error_rate = float(full.get('physical error rate', 0.0))
     
         decoder_keys = sorted(
@@ -237,6 +262,8 @@ def load_checkpoint_yaml(path):
         correction_acc_all = [0.0 for _ in range(num_decoders)]
         logical_error_rate_all = [0.0 for _ in range(num_decoders)]
         invoke_rate_all = [0.0 for _ in range(num_decoders)]
+        converge_fail_all = [0.0 for _ in range(num_decoders)]
+        converge_succ_all = [0.0 for _ in range(num_decoders)]
 
         # Populate from YAML
         for idx, key in enumerate(decoder_keys):
@@ -251,6 +278,8 @@ def load_checkpoint_yaml(path):
             correction_acc_all[idx] = float(entry['data qubit correction accuracy'])*batch_count
             logical_error_rate_all[idx] = float(entry['logical error rate'])*batch_count
             invoke_rate_all[idx] = float(entry['decoder invoke rate'])*batch_count
+            converge_fail_all[idx] = float(entry['converge failure rate'])*batch_count
+            converge_succ_all[idx] = float(entry['converge failure rate'])*batch_count
 
         return (total_time_all,
                 average_time_sample_all,
@@ -261,5 +290,7 @@ def load_checkpoint_yaml(path):
                 synd_frame_error_rate_all,
                 correction_acc_all,
                 logical_error_rate_all,
-                invoke_rate_all, error_reach, batch_size, target_error, physical_error_rate, batch_count, ckpt_H)
+                invoke_rate_all,
+                converge_fail_all,
+                converge_succ_all, error_reach, batch_size, target_error, dtype, physical_error_rate, batch_count, ckpt_H)
      

@@ -113,6 +113,8 @@ def main():
     correction_acc_all = [0.0 for _ in range(num_decoders)]
     logical_error_rate_all = [0.0 for _ in range(num_decoders)]
     invoke_rate_all = [0.0 for _ in range(num_decoders)]
+    converge_fail_all = [0.0 for _ in range(num_decoders)]
+    converge_succ_all = [0.0 for _ in range(num_decoders)]
 
     logger.success(f'\n----------------------------------------------\nStep 2: Create error model\n----------------------------------------------')
     error_model = create_error_model(args.error_yaml)
@@ -122,11 +124,15 @@ def main():
     if args.checkpoint_yaml is not None:
         if not os.path.isfile(args.checkpoint_yaml):
             raise FileNotFoundError(f'Checkpoint file not found: {args.checkpoint_yaml}')
-        total_time_all, average_time_sample_all, average_iter_all, average_time_sample_iter_all, data_qubit_acc_all, data_frame_error_rate_all, synd_frame_error_rate_all, correction_acc_all, logical_error_rate_all, invoke_rate_all, num_err, batch_size, target_error, physical_error_rate, batch_count, ckpt_H = load_checkpoint_yaml(args.checkpoint_yaml)
+        total_time_all, average_time_sample_all, average_iter_all, average_time_sample_iter_all, data_qubit_acc_all, data_frame_error_rate_all, \
+            synd_frame_error_rate_all, correction_acc_all, logical_error_rate_all, invoke_rate_all, converge_fail_all, converge_succ_all, num_err, \
+                batch_size, target_error, ckpt_dtype, physical_error_rate, batch_count, ckpt_H = load_checkpoint_yaml(args.checkpoint_yaml)
         if batch_size != args.batch_size:
             raise FileNotFoundError(f'Checkpoint file not match on batch size: ckpt({batch_size}), input({args.batch_size})')
         elif target_error != args.target_error:
             raise FileNotFoundError(f'Checkpoint file not match on target error: ckpt({target_error}), input({args.target_error})')
+        elif ckpt_dtype != str(dtype):
+            raise FileNotFoundError(f'Checkpoint file not match on data type: ckpt({ckpt_dtype}), input({dtype})')
         elif float(physical_error_rate) != float(error_model.rate):
             raise FileNotFoundError(f'Checkpoint file not match on physical error rate: ckpt({float(physical_error_rate)}), input({float(error_model.rate)})')
         elif ckpt_H != H_file_name:
@@ -184,19 +190,17 @@ def main():
                 e_v_all[decoder_idx] = torch.cat((e_v_all[decoder_idx], io_dict['e_v']), dim=0)
                 iter_all[decoder_idx] = torch.cat((iter_all[decoder_idx], io_dict['iter']))
                 converge_all[decoder_idx] = torch.cat((converge_all[decoder_idx], torch.ones_like(io_dict['converge'])), dim=0)
-                if decoder_idx + 1 < num_decoders:
-                    converge_all[decoder_idx+1] = torch.cat((converge_all[decoder_idx+1], io_dict['converge']), dim=0)
+                converge_all[decoder_idx+1] = torch.cat((converge_all[decoder_idx+1], io_dict['converge']), dim=0)
                 decoder_idx += 1
             while decoder_idx < num_decoders:
                 # second decoder
                 start_time = time.time()
                 io_dict = decoders[1](io_dict)
-
+                
                 time_iter_all[decoder_idx].append(time.time() - start_time)
                 e_v_all[decoder_idx] = torch.cat((e_v_all[decoder_idx], io_dict['e_v']), dim=0)
                 iter_all[decoder_idx] = torch.cat((iter_all[decoder_idx], io_dict['iter']))
-                if decoder_idx + 1 < num_decoders:
-                    converge_all[decoder_idx+1] = torch.cat((converge_all[decoder_idx+1], io_dict['converge']), dim=0)
+                converge_all[decoder_idx+1] = torch.cat((converge_all[decoder_idx+1], io_dict['converge']), dim=0)
                 decoder_idx += 1    
 
             logger.success(f'\n----------------------------------------------\nStep 9: Check logical error rate\n----------------------------------------------')
@@ -210,27 +214,29 @@ def main():
             # report metric
             logger.success(f'\n----------------------------------------------\nStep 10: Save log\n----------------------------------------------')
             for i in range(num_decoders):
-                batch_total_time, batch_average_time_sample, batch_average_iter, batch_average_time_sample_iter, data_qubit_acc, \
-                    data_frame_error_rate, synd_frame_error_rate, batch_correction_acc, batch_logical_error_rate, \
-                        batch_invoke_rate = report_metric(e_all, e_v_all[i], iter_all[i], time_iter_all[i], check[i], converge_all[i], converge_all[i+1], i)
+                batch_total_time, batch_average_time_sample, batch_average_iter, batch_average_time_sample_iter, batch_data_qubit_acc, \
+                    batch_data_frame_error_rate, batch_synd_frame_error_rate, batch_correction_acc, batch_logical_error_rate, \
+                        batch_invoke_rate, batch_converge_fail, batch_converge_succ = report_metric(e_all, e_v_all[i], iter_all[i], time_iter_all[i], check[i], converge_all[i], converge_all[i+1], i)
                 total_time_all[i] += batch_total_time
                 average_time_sample_all[i] += batch_average_time_sample
                 average_iter_all[i] += batch_average_iter
                 average_time_sample_iter_all[i] += batch_average_time_sample_iter
-                data_qubit_acc_all[i] += data_qubit_acc
-                data_frame_error_rate_all[i] += data_frame_error_rate
-                synd_frame_error_rate_all[i] += synd_frame_error_rate
+                data_qubit_acc_all[i] += batch_data_qubit_acc
+                data_frame_error_rate_all[i] += batch_data_frame_error_rate
+                synd_frame_error_rate_all[i] += batch_synd_frame_error_rate
                 correction_acc_all[i] += batch_correction_acc
                 logical_error_rate_all[i] += batch_logical_error_rate
                 invoke_rate_all[i] += batch_invoke_rate
-
+                converge_fail_all[i] += batch_converge_fail
+                converge_succ_all[i] += batch_converge_succ
+            
             if num_batches % 100 == 0:
                 all_metrics = []
                 logger.success(f'\n----------------------------------------------\nStep 11: Save final log\n----------------------------------------------')
                 for i in range(num_decoders):
                     total_time, average_time_sample, average_iter, average_time_sample_iter, data_qubit_acc, \
                         data_frame_error_rate, synd_frame_error_rate, correction_acc, \
-                        logical_error_rate, invoke_rate = compute_avg_metrics(args.target_error, i, num_batches, total_time_all,
+                        logical_error_rate, invoke_rate, converge_fail, converge_succ = compute_avg_metrics(args.target_error, i, num_batches, total_time_all,
                                                                                         average_time_sample_all,
                                                                                         average_iter_all,
                                                                                         average_time_sample_iter_all,
@@ -239,7 +245,10 @@ def main():
                                                                                         synd_frame_error_rate_all,
                                                                                         correction_acc_all,
                                                                                         logical_error_rate_all,
-                                                                                        invoke_rate_all)
+                                                                                        invoke_rate_all,
+                                                                                        converge_fail_all,
+                                                                                        converge_succ_all)
+                    
                     metrics_dict = {
                         'algorithm': algo_name[i],
                         'total_time': total_time,
@@ -251,14 +260,16 @@ def main():
                         'synd_frame_error_rate': synd_frame_error_rate,
                         'correction_acc': correction_acc,
                         'logical_error_rate': logical_error_rate,
-                        'invoke_rate': invoke_rate
+                        'invoke_rate': invoke_rate,
+                        'converge_fail_rate': converge_fail,
+                        'converge_succ_rate': converge_succ
                     }
                     all_metrics.append(metrics_dict)
 
                 logger.success(f'Saved log to <{output_log}>.')
 
                 logger.success(f'\n----------------------------------------------\nStep 12: Save final metrics\n----------------------------------------------')
-                save_metric(all_metrics, args.run_dir + '/', args.batch_size, args.target_error, error_model.rate, num_batches, num_err, H_file_name)
+                save_metric(all_metrics, args.run_dir + '/', args.batch_size, args.target_error, str(dtype), error_model.rate, num_batches, num_err, H_file_name)
             
                 logger.success(f'Saved metric results to <{args.run_dir}>.')
     all_metrics = []
@@ -266,7 +277,7 @@ def main():
     for i in range(num_decoders):
         total_time, average_time_sample, average_iter, average_time_sample_iter, data_qubit_acc, \
             data_frame_error_rate, synd_frame_error_rate, correction_acc, \
-            logical_error_rate, invoke_rate = compute_avg_metrics(args.target_error, i, num_batches, total_time_all,
+            logical_error_rate, invoke_rate, converge_fail, converge_succ = compute_avg_metrics(args.target_error, i, num_batches, total_time_all,
                                                                             average_time_sample_all,
                                                                             average_iter_all,
                                                                             average_time_sample_iter_all,
@@ -275,7 +286,10 @@ def main():
                                                                             synd_frame_error_rate_all,
                                                                             correction_acc_all,
                                                                             logical_error_rate_all,
-                                                                            invoke_rate_all)
+                                                                            invoke_rate_all,
+                                                                            converge_fail_all,
+                                                                            converge_succ_all)
+
         metrics_dict = {
             'algorithm': algo_name[i],
             'total_time': total_time,
@@ -283,21 +297,23 @@ def main():
             'average_iter': average_iter,
             'average_time_sample_iter': average_time_sample_iter,
             'data_qubit_acc': data_qubit_acc,
-            'correction_acc': correction_acc,
             'data_frame_error_rate': data_frame_error_rate,
             'synd_frame_error_rate': synd_frame_error_rate,
+            'correction_acc': correction_acc,
             'logical_error_rate': logical_error_rate,
-            'invoke_rate': invoke_rate
+            'invoke_rate': invoke_rate,
+            'converge_fail_rate': converge_fail,
+            'converge_succ_rate': converge_succ
         }
         all_metrics.append(metrics_dict)
 
     logger.success(f'Saved log to <{output_log}>.')
 
     logger.success(f'\n----------------------------------------------\nStep 12: Save final metrics\n----------------------------------------------')
-    save_metric(all_metrics, args.run_dir + '/', args.batch_size, args.target_error, error_model.rate, num_batches, num_err, H_file_name)
+    save_metric(all_metrics, args.run_dir + '/', args.batch_size, args.target_error, str(dtype), error_model.rate, num_batches, num_err, H_file_name)
 
     logger.success(f'Saved metric results to <{args.run_dir}>.')
-    
+
 
 if __name__ == '__main__':
     main()

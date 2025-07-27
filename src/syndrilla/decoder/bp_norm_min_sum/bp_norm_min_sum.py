@@ -60,7 +60,7 @@ class create(torch.nn.Module):
         self.type = decoder_cfg.get('type', 'hx')
         if self.type.lower() not in {'hx', 'hz'}: 
             logger.warning(f'Invalid input type <{self.type}>, default to <hx>.')
-            self.dtype = 'hx'
+            self.type = 'hx'
 
         # get the column and row index for all 1s in parity check matrix
         logger.info(f'Creating hx parity check matrix.')

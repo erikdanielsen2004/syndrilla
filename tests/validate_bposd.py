@@ -42,7 +42,7 @@ def test_batch_alist_hx(batch_size=1000, target_error=100):
     e_v_all = [torch.empty((0, shape[1]), dtype=dtype, device=decoder_device) for _ in range(num_decoders)]
     e_all = torch.empty((0, shape[1]), dtype=dtype, device=decoder_device)
     
-    converge_all = [torch.empty((0), dtype=dtype, device=decoder_device) for _ in range(num_decoders)]
+    converge_all = [torch.empty((0), dtype=dtype, device=decoder_device) for _ in range(num_decoders+1)]
     iter_all = [torch.empty((0), dtype=dtype, device=decoder_device) for _ in range(num_decoders)]
     time_iter_all = [[] for _ in range(num_decoders)]
 
@@ -56,7 +56,7 @@ def test_batch_alist_hx(batch_size=1000, target_error=100):
         e_v_all = [torch.empty((0, shape[1]), dtype=dtype, device=decoder_device) for _ in range(num_decoders)]
         e_all = torch.empty((0, shape[1]), dtype=dtype, device=decoder_device)
         
-        converge_all = [torch.empty((0), dtype=dtype, device=decoder_device) for _ in range(num_decoders)]
+        converge_all = [torch.empty((0), dtype=dtype, device=decoder_device) for _ in range(num_decoders+1)]
         iter_all = [torch.empty((0), dtype=dtype, device=decoder_device) for _ in range(num_decoders)]
         time_iter_all = [[] for _ in range(num_decoders)]
 
@@ -91,8 +91,8 @@ def test_batch_alist_hx(batch_size=1000, target_error=100):
                 e_v_all[decoder_idx] = torch.cat((e_v_all[decoder_idx], io_dict['e_v']), dim=0)
                 iter_all[decoder_idx] = torch.cat((iter_all[decoder_idx], io_dict['iter']))
                 converge_all[decoder_idx] = torch.cat((converge_all[decoder_idx], torch.ones_like(io_dict['converge'])), dim=0)
-                if decoder_idx + 1 < num_decoders:
-                    converge_all[decoder_idx+1] = torch.cat((converge_all[decoder_idx+1], io_dict['converge']), dim=0)
+                
+                converge_all[decoder_idx+1] = torch.cat((converge_all[decoder_idx+1], io_dict['converge']), dim=0)
                 decoder_idx += 1
 
             while decoder_idx < num_decoders:
@@ -103,8 +103,7 @@ def test_batch_alist_hx(batch_size=1000, target_error=100):
                 time_iter_all[decoder_idx].append(time.time() - start_time)
                 e_v_all[decoder_idx] = torch.cat((e_v_all[decoder_idx], io_dict['e_v']), dim=0)
                 iter_all[decoder_idx] = torch.cat((iter_all[decoder_idx], io_dict['iter']))
-                if decoder_idx + 1 < num_decoders:
-                    converge_all[decoder_idx+1] = torch.cat((converge_all[decoder_idx+1], io_dict['converge']), dim=0)
+                converge_all[decoder_idx+1] = torch.cat((converge_all[decoder_idx+1], io_dict['converge']), dim=0)
                 decoder_idx += 1       
 
                 # comparing result with bposd repo

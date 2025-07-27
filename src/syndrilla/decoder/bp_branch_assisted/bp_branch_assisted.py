@@ -68,7 +68,7 @@ class create(torch.nn.Module):
         self.type = decoder_cfg.get('type', 'hx')
         if self.type.lower() not in {'hx', 'hz'}: 
             logger.warning(f'Invalid input type <{self.type}>, default to <hx>.')
-            self.dtype = 'hx'
+            self.type = 'hx'
 
         self.random_machine = decoder_cfg.get('random_machine', 'sobol')
         if self.random_machine.lower() not in {'sobol', 'system'}: 

@@ -50,7 +50,7 @@ class create(torch.nn.Module):
         
         # set up default dtype
         self.dtype = decoder_cfg.get('dtype', 'float64')
-        if self.dtype not in {'float32', 'float64', 'bfloat16', 'float16', 'bfloat16'}: 
+        if self.dtype not in {'float32', 'float64', 'bfloat16', 'float16'}: 
             logger.warning(f'Invalid input type <{self.dtype}>, default to <torch.float64>.')
             self.dtype = 'float64'
         self.dtype = torch.__dict__[self.dtype]
@@ -60,7 +60,7 @@ class create(torch.nn.Module):
         self.type = decoder_cfg.get('type', 'hx')
         if self.type.lower() not in {'hx', 'hz'}: 
             logger.warning(f'Invalid input type <{self.type}>, default to <hx>.')
-            self.dtype = 'hx'
+            self.type = 'hx'
 
         # get the column and row index for all 1s in parity check matrix
         logger.info(f'Creating hx parity check matrix.')
