@@ -1,6 +1,6 @@
 decoder:
   algorithm: bp_norm_min_sum
-  type: hz
+  check_type: hz
   parity_matrix_hx: examples/txt/hx.matrix.yaml
   parity_matrix_hz: examples/txt/hz.matrix.yaml
   max_iter: 50

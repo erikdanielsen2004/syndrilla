@@ -1,6 +1,6 @@
 decoder:
   algorithm: bp_branch_assisted
-  type: hx
+  check_type: hx
   parity_matrix_hx: examples/txt/hx.matrix.yaml
   parity_matrix_hz: examples/txt/hz.matrix.yaml
   max_iter: 181

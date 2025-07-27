@@ -10,7 +10,7 @@ def clean_dir(base_path: str):
     shutil.rmtree(generated_path, ignore_errors=True)
 
 
-def generate_decoder(base_path: str, code, type, distance, dtype, decoder):
+def generate_decoder(base_path: str, code, check_type, distance, dtype, decoder):
     """
         Generate decoder yaml file from examples
     """
@@ -18,15 +18,15 @@ def generate_decoder(base_path: str, code, type, distance, dtype, decoder):
     template_path = 'examples/alist/'
     generated_path = base_path
 
-    configuration_dict = template_path + f'{decoder}_{type}.decoder.yaml'
+    configuration_dict = template_path + f'{decoder}_{check_type}.decoder.yaml'
 
-    target_file = os.path.join(generated_path, f'{decoder}_{type}.decoder.yaml')
+    target_file = os.path.join(generated_path, f'{decoder}_{check_type}.decoder.yaml')
 
     # Read, modify, and write
     config = read_yaml(configuration_dict)
     if 'decoder' in config:
         config['decoder']['dtype'] = dtype
-        config['decoder']['type'] = type
+        config['decoder']['check_type'] = check_type
         if code == 'surface':
             config['decoder']['max_iter'] = distance*2*(distance-1)+1
         else:
@@ -48,17 +48,17 @@ def generate_matrix(base_path: str, code, distance):
     template_path = 'examples/alist/'
     generated_path = base_path
 
-    type_list = ['hx', 'hz', 'lx', 'lz']
+    check_type_list = ['hx', 'hz', 'lx', 'lz']
 
     # create all hx, hz, lx, lz matrix yaml files 
-    for type in type_list:
-        configuration_dict = template_path + f'{type}.matrix.yaml'
-        target_file = os.path.join(generated_path, f'{type}.matrix.yaml')
+    for check_type in check_type_list:
+        configuration_dict = template_path + f'{check_type}.matrix.yaml'
+        target_file = os.path.join(generated_path, f'{check_type}.matrix.yaml')
 
         # Read, modify, and write
         config = read_yaml(configuration_dict)
         if 'matrix' in config:
-            config['matrix']['path'] = f'examples/alist/{code}/{code}_{distance}_{type}.alist'
+            config['matrix']['path'] = f'examples/alist/{code}/{code}_{distance}_{check_type}.alist'
         write_yaml(target_file, config)
 
 
@@ -96,7 +96,7 @@ def generate_syndrome(base_path: str):
     write_yaml(target_file, config)
 
 
-def generate_checker(base_path: str, type):
+def generate_checker(base_path: str, check_type):
     """
         Generate logical check yaml file from examples
     """
@@ -104,7 +104,7 @@ def generate_checker(base_path: str, type):
     template_path = 'examples/alist/'
     generated_path = base_path
 
-    if type == 'hx':
+    if check_type == 'hx':
         configuration_dict = template_path + 'lx.check.yaml'
         target_file = os.path.join(generated_path, 'lx.check.yaml')
     else:
@@ -116,7 +116,7 @@ def generate_checker(base_path: str, type):
     write_yaml(target_file, config)
 
 
-def generate_checker(base_path: str, type):
+def generate_checker(base_path: str, check_type):
     """
         Generate logical check yaml file from examples
     """
@@ -124,7 +124,7 @@ def generate_checker(base_path: str, type):
     template_path = 'examples/alist/'
     generated_path = base_path
 
-    if type == 'hx':
+    if check_type == 'hx':
         configuration_dict = template_path + 'lx.check.yaml'
         target_file = os.path.join(generated_path, 'lx.check.yaml')
     else:
@@ -157,7 +157,7 @@ def main():
     # load each different code settings from sweeping_configs.yaml file
     for decoder in config_list['decoder']:
         for code in config_list['code']:
-            for check_type in config_list['type']:
+            for check_type in config_list['check_type']:
                 for distance in config_list['distance']:
                     for dtype in config_list['dtype']:
                         for probability in config_list['probability']:

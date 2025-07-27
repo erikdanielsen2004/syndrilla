@@ -174,14 +174,14 @@ python zoo/script/generate_sweeping_configs.py
 ```
 
 The configurations to sweep are specified in the ```sweeping_configs.yaml``` file.
-It allows specifying decoder (decoder algorithm), code (code type), probability (physical error rate), type (check type), distance (code distance), and dtype (data type).
+It allows specifying decoder (decoder algorithm), code (code type), probability (physical error rate), check_type (check type), distance (code distance), and dtype (data type).
 Below is an example:
 
 ```
 decoder: [bposd, lottery_bposd]
 code: [surface, toric]
 probability: [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5]
-type: [hx, hz]
+check_type: [hx, hz]
 distance: [3, 5, 7, 9, 11, 13]
 dtype: ['bfloat16', 'float16', 'float32', 'float64']
 ```

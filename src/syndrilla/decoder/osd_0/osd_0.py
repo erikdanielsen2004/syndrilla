@@ -100,7 +100,7 @@ class create(torch.nn.Module):
         # set up default dtype
         self.dtype = decoder_cfg.get('dtype', 'float64')
         if self.dtype not in {'float32', 'float64', 'bfloat16', 'float16'}: 
-            logger.warning(f'Invalid input type <{self.dtype}>, default to <torch.float64>.')
+            logger.warning(f'Invalid input data type <{self.dtype}>, default to <torch.float64>.')
             self.dtype = 'float64'
         self.dtype = torch.__dict__[self.dtype]
         self.algo = 'osd_0'

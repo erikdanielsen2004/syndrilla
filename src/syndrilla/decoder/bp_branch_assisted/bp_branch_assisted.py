@@ -59,20 +59,20 @@ class create(torch.nn.Module):
         # set up default dtype
         self.dtype = decoder_cfg.get('dtype', 'float64')
         if self.dtype not in {'float32', 'float64', 'bfloat16', 'float16'}: 
-            logger.warning(f'Invalid input type <{self.dtype}>, default to <torch.float64>.')
+            logger.warning(f'Invalid input data type <{self.dtype}>, default to <torch.float64>.')
             self.dtype = 'float64'
         self.dtype = torch.__dict__[self.dtype]
 
         self.batch_size = 1
 
-        self.type = decoder_cfg.get('type', 'hx')
-        if self.type.lower() not in {'hx', 'hz'}: 
-            logger.warning(f'Invalid input type <{self.type}>, default to <hx>.')
-            self.type = 'hx'
+        self.check_type = decoder_cfg.get('check_type', 'hx')
+        if self.check_type.lower() not in {'hx', 'hz'}: 
+            logger.warning(f'Invalid input check type <{self.check_type}>, default to <hx>.')
+            self.check_type = 'hx'
 
         self.random_machine = decoder_cfg.get('random_machine', 'sobol')
         if self.random_machine.lower() not in {'sobol', 'system'}: 
-            logger.warning(f'Invalid input type <{self.random_machine}>, default to <sobol>.')
+            logger.warning(f'Invalid input machine type <{self.random_machine}>, default to <sobol>.')
             self.random_machine = 'sobol'
 
         # get the column and row index for all 1s in parity check matrix
@@ -82,7 +82,7 @@ class create(torch.nn.Module):
         logger.info(f'Creating hz parity check matrix.')
         self.Hz_matrix = create_parity_matrix(yaml_path=decoder_cfg['parity_matrix_hz'], device=self.device)
 
-        if self.type.lower() == 'hx':
+        if self.check_type.lower() == 'hx':
             self.H_shape, self.V_c_row, self.V_c_col, self.H_matrix = self.Hx_matrix.get_index()
         else: 
             self.H_shape, self.V_c_row, self.V_c_col, self.H_matrix = self.Hz_matrix.get_index()

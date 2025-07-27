@@ -85,7 +85,7 @@ def main():
     decoder_device = decoders[0].device
     H_matrix = decoders[0].H_matrix
     
-    if decoders[0].type.lower() == 'hx':
+    if decoders[0].check_type.lower() == 'hx':
         H_file_name = decoders[0].Hx_matrix.path
         l_matrix = decoders[0].lx_matrix
     else:
