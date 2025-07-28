@@ -9,6 +9,36 @@ A PyTorch-based numerical simulator for decoders in quantum error correction.
   </tr>
 </table>
 
+
+## Table of Contents
+- [Syndrilla](#syndrilla)
+  - [Table of Contents](#table-of-contents)
+  - [Installation](#installation)
+    - [Option 1: pip installation](#option-1-pip-installation)
+    - [Option 2: source installation](#option-2-source-installation)
+  - [Basic Usage](#basic-usage)
+    - [1. Run with command line arguments](#1-run-with-command-line-arguments)
+    - [2. Input format and configurations](#2-input-format-and-configurations)
+      - [2.1. Error module](#21-error-module)
+      - [2.2. Syndrome module](#22-syndrome-module)
+      - [2.3. Matrix module](#23-matrix-module)
+      - [2.4. Decoder module](#24-decoder-module)
+      - [2.5. Logical check module](#25-logical-check-module)
+      - [2.6. Metric module](#26-metric-module)
+    - [3. Output format and metrics](#3-output-format-and-metrics)
+      - [3.1. Per-decoder metrics:](#31-per-decoder-metrics)
+      - [3.2. Final metrics:](#32-final-metrics)
+    - [4. Resume from checkpoint](#4-resume-from-checkpoint)
+    - [5. Sweep configurations](#5-sweep-configurations)
+  - [Simulation results](#simulation-results)
+    - [Comparison across GPUs](#comparison-across-gpus)
+    - [Comparison across data formats](#comparison-across-data-formats)
+    - [Comparison across distances](#comparison-across-distances)
+    - [Comparison across batch sizes and against CPU](#comparison-across-batch-sizes-and-against-cpu)
+  - [Citation](#citation)
+  - [Contribution](#contribution)
+
+
 ## Installation
 All provided installation methods allow running ```syndrilla``` in the command line and ```import syndrilla``` as a python module.
 
@@ -34,7 +64,7 @@ This is the developer mode, where you can edit the source code with live changes
 
 ## Basic Usage
 
-### Run with command line arguments
+### 1. Run with command line arguments
 Syndrilla simulation can be done via command-line arguments.
 Below is an example command that runs a simulation using the BPOSD decoder:
 
@@ -62,7 +92,115 @@ Following is a table for detailed explaination on each command line arguments:
 | `-te`    | Total number of errors to stop decoding      | `-te=100`                                         |
 | `-l`     | Level of logger                              | `-l=SUCCESS`                                      |
 
-### Output format and metrics
+### 2. Input format and configurations
+<table>
+  <tr>
+    <td align="center">
+      <img src="https://raw.githubusercontent.com/UnaryLab/syndrilla/main/images/modules.png" width="600">
+    </td>
+  </tr>
+</table>
+
+Syndrilla virtualizes the full decoder pipeline of data encoding, syndrome measurement, error decoding into five modules: error, syndrome, decoder, logical check, and metric, as shown in the figure above.
+All configurations are defined through YAML files. 
+Each module requires its own dedicated YAML configuration file, with the exception of the metric module.
+
+#### 2.1. Error module
+The error YAML file defines all configuration parameters associated with the error model.
+An example error configuration file using the Binary Symmetric Channel (BSC) model is provided in ```bsc.error.yaml```:
+
+```
+error:
+  model: bsc
+  device: cpu
+  rate: 0.05
+``` 
+
+The following table details the configuration parameters used in the error YAML file.
+| Key              | Description                                                   | Example                   |
+|------------------|---------------------------------------------------------------|---------------------------|
+| `error.model`     | Type of quantum error model applied to data qubits           | `bsc`                     |
+| `error.device`    | Device where the error injection will happen             | `cpu`, `cuda`             |
+| `error.rate`      | Physical error rate                                          | `0.05`                    |
+
+#### 2.2. Syndrome module
+The syndrome YAML file defines all configuration parameters associated with the syndrome measurement.
+An example configuration file that assumes ideal (error-free) syndrome measurements is provided in ```perfect.syndrome.yaml```:
+
+```
+syndrome:
+  measure: perfect
+```
+
+The following table details the configuration parameters used in the syndrome module YAML file.
+| Key              | Description                                                   | Example                   |
+|------------------|---------------------------------------------------------------|---------------------------|
+| `syndrome.measure`| Model for syndrome measurement                       | `perfect`                     |
+
+
+#### 2.3. Matrix module
+The matrix YAML file defines all configuration parameters associated with the matrix processing.
+An example matrix configuration file that loads a matrix from a alist file is provided in ```hx.matrix.yaml```:
+```
+matrix:
+  file_type: alist
+  path: examples/alist/surface/surface_10_hx.alist
+```
+The following table details the configuration parameters used in the matrix module YAML file.
+| Key              | Description                                                   | Example                   |
+|------------------|---------------------------------------------------------------|---------------------------|
+|`matrix.file_type`| Format of the parity-check matrix file                        | `alist` or `txt` or `npz` |
+|`matrix.path`     | Path to the parity-check matrix file                          | `examples/alist/surface/surface_10_hx.alist`                     |
+
+
+#### 2.4. Decoder module
+The decoder YAML file defines all configuration parameters associated with the decoder.
+An example decoder configuration file is provided in ```bposd_hx.decoder.yaml```.
+
+```
+decoder:
+  algorithm: [bp_norm_min_sum, osd_0]
+  check_type: hx
+  max_iter: 131
+  parity_matrix_hx: examples/alist/hx.matrix.yaml
+  parity_matrix_hz: examples/alist/hz.matrix.yaml
+  dtype: float64
+  logical_check_matrix: True
+  logical_check_lx: examples/alist/lx.matrix.yaml
+  logical_check_lz: examples/alist/lz.matrix.yaml
+``` 
+
+The following table details the configuration parameters used in the decoder module YAML file.
+| Key                   | Description                                                                  | Example                                            |
+|------------------------|-----------------------------------------------------------------------------|-----------------------------------------------------|
+| `decoder.algorithm`    | List of decoding algorithms used                                            | `[bp_norm_min_sum, osd_0]`                         |
+| `decoder.check_type`   | Type of parity-check matrix used                                            | `hx` or `hz`                                       |
+| `decoder.max_iter`     | Maximum number of decoding iterations for iterative algorithms              | `131`                                              |
+| `decoder.parity_matrix_hx` | Path to the X-type parity-check matrix in YAML format                   | `examples/alist/hx.matrix.yaml`                   |
+| `decoder.parity_matrix_hz` | Path to the Z-type parity-check matrix in YAML format                   | `examples/alist/hz.matrix.yaml`                   |
+| `decoder.dtype`        | Data type for decoding computations                                         | `float32`, `float64`                              |
+| `decoder.logical_check_matrix` |  Whether logical check matrices are provided. If not provided, the decoder is supposed to compute these logical check matrices based from parity-check matrices.           | `True` or `False`                                 |
+| `decoder.logical_check_lx` | Path to the X-type logical check matrix in YAML format               | `examples/alist/lx.matrix.yaml`                   |
+| `decoder.logical_check_lz` | Path to the Z-type logical check matrix in YAML format               | `examples/alist/lz.matrix.yaml`                   |
+
+#### 2.5. Logical check module
+The check YAML file defines all configuration parameters associated with the computation of logical check error rates.
+An example configuration file for computing the logical check error rate using the lx matrix is provided in ```lx.check.yaml```.
+
+```
+check:
+  check_type: lx
+```
+
+The following table provides a detailed explanation of the configuration parameters used in the check module YAML file.
+| Key              | Description                                                   | Example                   |
+|------------------|---------------------------------------------------------------|---------------------------|
+| `check.check_type`| Method used on logical check computation                     | `lx` or `lz`                     |
+
+#### 2.6. Metric module
+This module does not take any YAML file as inputs, it will report default metrics as output, which will be described in the output.
+
+### 3. Output format and metrics
 The result YAML file will be saved to the path specified by the ```-r``` option. 
 In the example above, the result YAML file can be found in the ```tests/test_outputs``` folder.
 This file includes both the metric results for each decoder and a summary of the full decoding.
@@ -114,7 +252,7 @@ decoder_full:
 
 Below tables will help user understand these metrics better.
 
-Per-decoder metrics:
+#### 3.1. Per-decoder metrics:
 | Metric                           | Description                                                                 |
 |----------------------------------|-----------------------------------------------------------------------------|
 | `algorithm`                      | Name of the decoding algorithm used (e.g., `bp_norm_min_sum`, `osd_0`)      |
@@ -133,7 +271,7 @@ Per-decoder metrics:
 | `average time per iteration (s)` | Average time per iteration per sample in seconds                            |
 
 
-Final metrics:
+#### 3.2. Final metrics:
 | Metric                         | Description                                                    |
 |--------------------------------|----------------------------------------------------------------|
 | `H matrix`                     | Path to the parity-check matrix used                           |
@@ -151,7 +289,7 @@ Final metrics:
 To change the configuration of the simulator, user need to update the YAML files. 
 For example, if you want to use a different physical error rate, you need to find the input error YAML (e.g., ```examples/alist/bsc.error.yaml```) and update the ```rate``` field.
 
-### Resume from checkpoint
+### 4. Resume from checkpoint
 If previous run is terminated by accident, the simulation can resume by setting ```-ckpt``` to the checkpoint YAML file, the results of a previous run (e.g., ```tests/test_outputs=result_phy_err_0.01.yaml```).
 
 ```command
@@ -165,7 +303,7 @@ syndrilla -r=tests/test_outputs
           -ckpt=tests/test_outputs=result_phy_err_0.01.yaml
 ```
 
-### Sweeping configurations
+### 5. Sweep configurations
 Syndrilla also allows sweeping configurations during simulation, which is done in the ```zoo``` folder.
 To generate all the configurations in the zoo directory, user can use the ```generate_sweeping_configs.py``` script. 
 
