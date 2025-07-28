@@ -10,13 +10,13 @@ A PyTorch-based numerical simulator for decoders in quantum error correction.
 </table>
 
 
-## Table of Contents
+## Table of contents
 - [Syndrilla](#syndrilla)
-  - [Table of Contents](#table-of-contents)
+  - [Table of contents](#table-of-contents)
   - [Installation](#installation)
     - [Option 1: pip installation](#option-1-pip-installation)
     - [Option 2: source installation](#option-2-source-installation)
-  - [Basic Usage](#basic-usage)
+  - [Basic usage](#basic-usage)
     - [1. Run with command line arguments](#1-run-with-command-line-arguments)
     - [2. Input format and configurations](#2-input-format-and-configurations)
       - [2.1. Error module](#21-error-module)
@@ -62,7 +62,7 @@ This is the developer mode, where you can edit the source code with live changes
 4. ```python3 -m pip install -e . --no-deps```
 5. Validate installation via ```syndrilla -h``` in the command line or ```import syndrilla``` in python code
 
-## Basic Usage
+## Basic usage
 
 ### 1. Run with command line arguments
 Syndrilla simulation can be done via command-line arguments.
