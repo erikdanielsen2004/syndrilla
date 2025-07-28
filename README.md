@@ -28,8 +28,8 @@ A PyTorch-based numerical simulator for decoders in quantum error correction.
     - [3. Output format and metrics](#3-output-format-and-metrics)
       - [3.1. Per-decoder metrics:](#31-per-decoder-metrics)
       - [3.2. Final metrics:](#32-final-metrics)
-    - [3. Resume from checkpoint](#3-resume-from-checkpoint)
-    - [4. Sweep configurations](#4-sweep-configurations)
+    - [4. Resume from checkpoint](#4-resume-from-checkpoint)
+    - [5. Sweep configurations](#5-sweep-configurations)
   - [Simulation results](#simulation-results)
     - [Comparison across GPUs](#comparison-across-gpus)
     - [Comparison across data formats](#comparison-across-data-formats)
@@ -289,7 +289,7 @@ Below tables will help user understand these metrics better.
 To change the configuration of the simulator, user need to update the YAML files. 
 For example, if you want to use a different physical error rate, you need to find the input error YAML (e.g., ```examples/alist/bsc.error.yaml```) and update the ```rate``` field.
 
-### 3. Resume from checkpoint
+### 4. Resume from checkpoint
 If previous run is terminated by accident, the simulation can resume by setting ```-ckpt``` to the checkpoint YAML file, the results of a previous run (e.g., ```tests/test_outputs=result_phy_err_0.01.yaml```).
 
 ```command
@@ -303,7 +303,7 @@ syndrilla -r=tests/test_outputs
           -ckpt=tests/test_outputs=result_phy_err_0.01.yaml
 ```
 
-### 4. Sweep configurations
+### 5. Sweep configurations
 Syndrilla also allows sweeping configurations during simulation, which is done in the ```zoo``` folder.
 To generate all the configurations in the zoo directory, user can use the ```generate_sweeping_configs.py``` script. 
 
