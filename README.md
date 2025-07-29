@@ -175,6 +175,7 @@ The following table details the configuration parameters used in the decoder mod
 |------------------------|-----------------------------------------------------------------------------|-----------------------------------------------------|
 | `decoder.algorithm`    | List of decoding algorithms used                                            | `[bp_norm_min_sum, osd_0]`                         |
 | `decoder.check_type`   | Type of parity-check matrix used                                            | `hx` or `hz`                                       |
+| `decoder.device`       | Device where the decoding will happen                                       | `cpu`, `cuda`                                       |
 | `decoder.max_iter`     | Maximum number of decoding iterations for iterative algorithms              | `131`                                              |
 | `decoder.parity_matrix_hx` | Path to the X-type parity-check matrix in YAML format                   | `examples/alist/hx.matrix.yaml`                   |
 | `decoder.parity_matrix_hz` | Path to the Z-type parity-check matrix in YAML format                   | `examples/alist/hz.matrix.yaml`                   |

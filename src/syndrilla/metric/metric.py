@@ -99,7 +99,7 @@ def report_metric(e_estimated, e_actual, iteration, time_iteration, check, conve
         logger.info(f'Output converge failure rate: {converge_fail_rate}')
     
     converge_succ = torch.where((check == 0) & (coverge_next == 1), torch.tensor(1), torch.tensor(0))
-    if int(torch.sum(converge_fail)) == 0:
+    if int(torch.sum(converge_succ)) == 0:
         converge_succ_rate = 0
         logger.info(f'Output converge failure rate: {converge_succ_rate}')
     else:
