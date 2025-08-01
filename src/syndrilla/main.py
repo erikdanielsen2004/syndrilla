@@ -189,7 +189,7 @@ def main():
                 
                 e_v_all[decoder_idx] = torch.cat((e_v_all[decoder_idx], io_dict['e_v']), dim=0)
                 iter_all[decoder_idx] = torch.cat((iter_all[decoder_idx], io_dict['iter']))
-                converge_all[decoder_idx] = torch.cat((converge_all[decoder_idx], torch.ones_like(io_dict['converge'])), dim=0)
+                converge_all[decoder_idx] = torch.cat((converge_all[decoder_idx], torch.zeros_like(io_dict['converge'])), dim=0)
                 converge_all[decoder_idx+1] = torch.cat((converge_all[decoder_idx+1], io_dict['converge']), dim=0)
                 decoder_idx += 1
             while decoder_idx < num_decoders:
