@@ -212,44 +212,44 @@ Example output of running above code:
 ```
 decoder_0:
   algorithm: bp_norm_min_sum
-  data qubit accuracy: 0.9750082872928176
-  data qubit correction accuracy: 0.6411515516913118
-  data frame error rate: 0.6812
-  syndrome frame error rate: 0.5869
-  logical error rate: 0.6242
-  converge failure rate: 0.0373
-  converge success rate: 0.3758
-  decoder invoke rate: 0.0
-  average iteration: 78.1838
-  total time (s): '3.72205495834350586e-01'
-  average time per batch (s): '3.72205495834350586e-01'
-  average time per sample (s): '3.72205495834350552e-05'
-  average time per iteration (s): '4.76064729310100712e-07'
+  data qubit accuracy: 0.9745955801104972
+  data qubit correction accuracy: 0.6362010854945646
+  data frame error rate: 0.677
+  syndrome frame error rate: 0.5771
+  logical error rate: 0.615
+  converge failure rate: 0.0379
+  converge success rate: 0.385
+  decoder invoke rate: 1.0
+  average iteration: 76.93480000000001
+  total time (s): '3.60990762710571289e-01'
+  average time per batch (s): '3.60990762710571289e-01'
+  average time per sample (s): '3.60990762710571321e-05'
+  average time per iteration (s): '4.69216482931743878e-07'
 decoder_1:
   algorithm: osd_0
-  data qubit accuracy: 0.9814276243093922
-  data qubit correction accuracy: 0.6869085761120632
-  data frame error rate: 0.5289
+  data qubit accuracy: 0.9811088397790055
+  data qubit correction accuracy: 0.6822300493480665
+  data frame error rate: 0.5335
   syndrome frame error rate: 0.0
-  logical error rate: 0.1145
-  converge failure rate: 0.1145
-  converge success rate: 0.8855
-  decoder invoke rate: 0.5869
-  average iteration: 177.45322882944285
-  total time (s): '1.81744432449340820e+00'
-  average time per batch (s): '1.81744432449340820e+00'
-  average time per sample (s): '1.81744432449340809e-04'
-  average time per iteration (s): '1.02418216703186843e-06'
+  logical error rate: 0.1188
+  converge failure rate: 0.1188
+  converge success rate: 0.8812
+  decoder invoke rate: 0.5771
+  average iteration: 177.48085253855484
+  total time (s): '1.84798192977905273e+00'
+  average time per batch (s): '1.84798192977905273e+00'
+  average time per sample (s): '1.84798192977905264e-04'
+  average time per iteration (s): '1.04122890066555687e-06'
 decoder_full:
   H matrix: /home/ya212494/code/syndrilla/examples/alist/surface/surface_10_hx.alist
   batch size: 10000
   batch count: 1
   target error: 100
-  target error reached: 1145
+  target error reached: 1188
   data type: torch.float64
   physical error rate: 0.05
-  logical error rate: 0.1145
-  total time (s): '2.18964982032775879e+00'
+  logical error rate: 0.1188
+  total time (s): '2.20897269248962402e+00'
 ```
 
 Below tables will help user understand these metrics better.
