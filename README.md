@@ -70,9 +70,9 @@ Below is an example command that runs a simulation using the BPOSD decoder:
 
 ```command
 syndrilla -r=tests/test_outputs 
-          -d=examples/alist/bposd_hz.decoder.yaml 
+          -d=examples/alist/bposd_hx.decoder.yaml 
           -e=examples/alist/bsc.error.yaml 
-          -c=examples/alist/lz.check.yaml 
+          -c=examples/alist/lx.check.yaml 
           -s=examples/alist/perfect.syndrome.yaml 
           -bs=10000 
           -te=100
@@ -83,9 +83,9 @@ Following is a table for detailed explaination on each command line arguments:
 | Argument | Description                                  | Example                                           |
 |----------|----------------------------------------------|---------------------------------------------------|
 | `-r`     | Path to store outputs                        | `-r=tests/test_outputs`                           |
-| `-d`     | Path to decoder YAML file                    | `-d=examples/alist/bposd_hz.decoder.yaml`    |
+| `-d`     | Path to decoder YAML file                    | `-d=examples/alist/bposd_hx.decoder.yaml`    |
 | `-e`     | Path to error model YAML file                | `-e=examples/alist/bsc.error.yaml`                |
-| `-c`     | Path to check matrix YAML file               | `-c=examples/alist/lz.check.yaml`                 |
+| `-c`     | Path to check matrix YAML file               | `-c=examples/alist/lx.check.yaml`                 |
 | `-s`     | Path to syndrome extraction YAML file        | `-s=examples/alist/perfect.syndrome.yaml`         |
 | `-ckpt`  | Path to checkpoint YAML file to resume | `-ch=result_phy_err.yaml`                         |
 | `-bs`    | Number of samples in each batch             | `-bs=10000`                                       |
@@ -212,43 +212,44 @@ Example output of running above code:
 ```
 decoder_0:
   algorithm: bp_norm_min_sum
-  data qubit accuracy: 0.9993198895027624
-  data qubit correction accuracy: 0.9351998631697068
-  data frame error rate: 0.04856666666666667
-  syndrome frame error rate: 0.04136666666666667
-  logical error rate: 0.045033333333333335
-  converge failure rate: 0.0036666666666666666
-  converge success rate: 0.9549666666666666
+  data qubit accuracy: 0.9750082872928176
+  data qubit correction accuracy: 0.6411515516913118
+  data frame error rate: 0.6812
+  syndrome frame error rate: 0.5869
+  logical error rate: 0.6242
+  converge failure rate: 0.0373
+  converge success rate: 0.3758
   decoder invoke rate: 0.0
-  average iteration: 6.650266666666667
-  total time (s): '9.45191383361816406e-01'
-  average time per batch (s): '3.15063794453938784e-01'
-  average time per sample (s): '3.15063794453938808e-05'
-  average time per iteration (s): '4.73096957769078096e-06'
+  average iteration: 78.1838
+  total time (s): '3.72205495834350586e-01'
+  average time per batch (s): '3.72205495834350586e-01'
+  average time per sample (s): '3.72205495834350552e-05'
+  average time per iteration (s): '4.76064729310100712e-07'
 decoder_1:
   algorithm: osd_0
-  data qubit accuracy: 0.9993578268876612
-  data qubit correction accuracy: 0.9372712592402529
-  data frame error rate: 0.028999999999999998
+  data qubit accuracy: 0.9814276243093922
+  data qubit correction accuracy: 0.6869085761120632
+  data frame error rate: 0.5289
   syndrome frame error rate: 0.0
-  logical error rate: 0.004733333333333333
-  converge failure rate: 0.004733333333333333
-  converge success rate: 0.9952666666666666
-  decoder invoke rate: 0.04136666666666666
-  average iteration: 177.17491952736108
-  total time (s): '9.68757629394531250e-01'
-  average time per batch (s): '3.22919209798177065e-01'
-  average time per sample (s): '3.22919209798177111e-05'
-  average time per iteration (s): '1.82258306284528308e-07'
+  logical error rate: 0.1145
+  converge failure rate: 0.1145
+  converge success rate: 0.8855
+  decoder invoke rate: 0.5869
+  average iteration: 177.45322882944285
+  total time (s): '1.81744432449340820e+00'
+  average time per batch (s): '1.81744432449340820e+00'
+  average time per sample (s): '1.81744432449340809e-04'
+  average time per iteration (s): '1.02418216703186843e-06'
 decoder_full:
-  H matrix: /home/ya212494/code/syndrilla/examples/alist/surface/surface_10_hz.alist
+  H matrix: /home/ya212494/code/syndrilla/examples/alist/surface/surface_10_hx.alist
   batch size: 10000
-  batch count: 3
+  batch count: 1
   target error: 100
-  target error reached: 142
-  physical error rate: 0.01
-  logical error rate: 0.004733333333333333
-  total time (s): '1.91394901275634766e+00'
+  target error reached: 1145
+  data type: torch.float64
+  physical error rate: 0.05
+  logical error rate: 0.1145
+  total time (s): '2.18964982032775879e+00'
 ```
 
 Below tables will help user understand these metrics better.
@@ -260,7 +261,7 @@ Below tables will help user understand these metrics better.
 | `data qubit accuracy`            | Ratio of correctly matched data qubits over all data qubits                 |
 | `data qubit correction accuracy` | Ratio of correctly identified data qubit errors                               |
 | `data frame error rate`          | Ratio of samples with any data qubit mismatched                                |
-| `syndrome frame error rate`      | Ratio of samples with any syndrome mismatche                                  |
+| `syndrome frame error rate`      | Ratio of samples with any syndrome mismatched                                  |
 | `logical error rate`             | Ratio of samples that have a logical error                               |
 | `converge failure rate`          | Ratio of samples that successfully converge with a logical error  |
 | `converge success rate`          | Ratio of samples that successfully converge without a logical error |
@@ -295,9 +296,9 @@ If previous run is terminated by accident, the simulation can resume by setting 
 
 ```command
 syndrilla -r=tests/test_outputs 
-          -d=examples/alist/bposd_hz.decoder.yaml 
+          -d=examples/alist/bposd_hx.decoder.yaml 
           -e=examples/alist/bsc.error.yaml 
-          -c=examples/alist/lz.check.yaml 
+          -c=examples/alist/lx.check.yaml 
           -s=examples/alist/perfect.syndrome.yaml 
           -bs=10000 
           -te=100
@@ -317,7 +318,7 @@ It allows specifying decoder (decoder algorithm), code (code type), probability 
 Below is an example:
 
 ```
-decoder: [bposd, lottery_bposd]
+decoder: [bposd]
 code: [surface, toric]
 probability: [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5]
 check_type: [hx, hz]
