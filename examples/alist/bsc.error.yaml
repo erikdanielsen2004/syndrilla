@@ -1,4 +1,6 @@
 error:
   model: bsc
-  device: cpu
+  device: 
+    device_type: cpu
+    device_idx: 0
   rate: 0.05

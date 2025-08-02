@@ -7,3 +7,9 @@ decoder:
   dtype: float32
   int_width: 3
   frac_width: 4
+  device: 
+    device_type: cuda
+    device_idx: 0
+  logical_check_matrix: True
+  logical_check_lx: examples/alist/lx.matrix.yaml
+  logical_check_lz: examples/alist/lz.matrix.yaml

@@ -37,10 +37,19 @@ class create(torch.nn.Module):
         logger.info(f'Creating bp decoder.')
 
         # set up default device
-        self.device = decoder_cfg.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+        device_cfg = decoder_cfg.get('device', {})
+        self.device = device_cfg.get('device_type', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
         if self.device not in {'cuda', 'cpu', torch.device('cuda'), torch.device('cpu')}:
             logger.warning(f'Invalid input device <{self.device}>, default to avaliable device in your machine.')
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        if self.device == 'cuda':
+            device_idx = device_cfg.get('device_idx', 0)
+            if device_idx >= torch.cuda.device_count():
+                logger.warning(f'Invalid input device index <{device_idx}>, default to avaliable device in your machine.')
+                self.device = torch.device(f'cuda:0')
+            else:
+                self.device = torch.device(f'cuda:{device_idx}')
 
         # set up default max_iter
         self.max_iter = decoder_cfg.get('max_iter', 50)

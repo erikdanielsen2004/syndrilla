@@ -112,7 +112,9 @@ An example error configuration file using the Binary Symmetric Channel (BSC) mod
 ```
 error:
   model: bsc
-  device: cpu
+  device: 
+    device_type: cpu
+    device_idx: 0
   rate: 0.05
 ``` 
 
@@ -120,7 +122,8 @@ The following table details the configuration parameters used in the error YAML 
 | Key              | Description                                                   | Example                   |
 |------------------|---------------------------------------------------------------|---------------------------|
 | `error.model`     | Type of quantum error model applied to data qubits           | `bsc`                     |
-| `error.device`    | Device where the error injection will happen             | `cpu`, `cuda`             |
+| `error.device.device_type`       | Type of the device where the error injection will happen                                       | `cpu` or `cuda`                                       |
+| `error.device.device_idx`(GPU only)       | Index of the device where the error injection will happen                                       | 0                           |
 | `error.rate`      | Physical error rate                                          | `0.05`                    |
 
 #### 2.2. Syndrome module
@@ -165,6 +168,9 @@ decoder:
   parity_matrix_hx: examples/alist/hx.matrix.yaml
   parity_matrix_hz: examples/alist/hz.matrix.yaml
   dtype: float64
+  device: 
+    device_type: cuda
+    device_idx: 0
   logical_check_matrix: True
   logical_check_lx: examples/alist/lx.matrix.yaml
   logical_check_lz: examples/alist/lz.matrix.yaml
@@ -175,7 +181,8 @@ The following table details the configuration parameters used in the decoder mod
 |------------------------|-----------------------------------------------------------------------------|-----------------------------------------------------|
 | `decoder.algorithm`    | List of decoding algorithms used                                            | `[bp_norm_min_sum, osd_0]`                         |
 | `decoder.check_type`   | Type of parity-check matrix used                                            | `hx` or `hz`                                       |
-| `decoder.device`       | Device where the decoding will happen                                       | `cpu`, `cuda`                                       |
+| `decoder.device.device_type`       | Type of the device where the decoding will happen                                       | `cpu` or `cuda`                                       |
+| `decoder.device.device_idx`(GPU only)       | Index of the device where the decoding will happen                                       | 0                           |
 | `decoder.max_iter`     | Maximum number of decoding iterations for iterative algorithms              | `131`                                              |
 | `decoder.parity_matrix_hx` | Path to the X-type parity-check matrix in YAML format                   | `examples/alist/hx.matrix.yaml`                   |
 | `decoder.parity_matrix_hz` | Path to the Z-type parity-check matrix in YAML format                   | `examples/alist/hz.matrix.yaml`                   |
