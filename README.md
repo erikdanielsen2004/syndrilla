@@ -112,7 +112,9 @@ An example error configuration file using the Binary Symmetric Channel (BSC) mod
 ```
 error:
   model: bsc
-  device: cpu
+  device: 
+    device_type: cpu
+    device_idx: 0
   rate: 0.05
 ``` 
 
@@ -120,7 +122,8 @@ The following table details the configuration parameters used in the error YAML 
 | Key              | Description                                                   | Example                   |
 |------------------|---------------------------------------------------------------|---------------------------|
 | `error.model`     | Type of quantum error model applied to data qubits           | `bsc`                     |
-| `error.device`    | Device where the error injection will happen             | `cpu`, `cuda`             |
+| `error.device.device_type`       | Type of the device where the error injection will happen                                       | `cpu` or `cuda`                                       |
+| `error.device.device_idx`(GPU only)       | Index of the device where the error injection will happen                                       | 0                           |
 | `error.rate`      | Physical error rate                                          | `0.05`                    |
 
 #### 2.2. Syndrome module

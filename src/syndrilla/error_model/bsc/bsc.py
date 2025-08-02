@@ -14,7 +14,20 @@ class create():
                  **kwargs) -> None:
         assert 'rate' in error_model_cfg.keys(), logger.error(f'Missing key <rate> in the configuration.')
         self.rate = error_model_cfg['rate']
-        self.device = error_model_cfg['device']
+
+        device_cfg = error_model_cfg.get('device', {})
+        self.device = device_cfg.get('device_type', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+        if self.device not in {'cuda', 'cpu', torch.device('cuda'), torch.device('cpu')}:
+            logger.warning(f'Invalid input device <{self.device}>, default to avaliable device in your machine.')
+            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        if self.device == 'cuda':
+            device_idx = device_cfg.get('device_idx', 0)
+            if device_idx >= torch.cuda.device_count():
+                logger.warning(f'Invalid input device index <{device_idx}>, default to avaliable device in your machine.')
+                self.device = torch.device(f'cuda:0')
+            else:
+                self.device = torch.device(f'cuda:{device_idx}')
 
 
     def inject_error(self, codeword, batch_size:int=0):
