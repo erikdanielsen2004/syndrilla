@@ -165,6 +165,9 @@ decoder:
   parity_matrix_hx: examples/alist/hx.matrix.yaml
   parity_matrix_hz: examples/alist/hz.matrix.yaml
   dtype: float64
+  device: 
+    device_type: cuda
+    device_idx: 0
   logical_check_matrix: True
   logical_check_lx: examples/alist/lx.matrix.yaml
   logical_check_lz: examples/alist/lz.matrix.yaml
@@ -175,7 +178,8 @@ The following table details the configuration parameters used in the decoder mod
 |------------------------|-----------------------------------------------------------------------------|-----------------------------------------------------|
 | `decoder.algorithm`    | List of decoding algorithms used                                            | `[bp_norm_min_sum, osd_0]`                         |
 | `decoder.check_type`   | Type of parity-check matrix used                                            | `hx` or `hz`                                       |
-| `decoder.device`       | Device where the decoding will happen                                       | `cpu`, `cuda`                                       |
+| `decoder.device.device_type`       | Type of device where the decoding will happen                                       | `cpu`, `cuda`                                       |
+| `decoder.device.device_idx`       | Index of device where the decoding will happen                                       | 0                           |
 | `decoder.max_iter`     | Maximum number of decoding iterations for iterative algorithms              | `131`                                              |
 | `decoder.parity_matrix_hx` | Path to the X-type parity-check matrix in YAML format                   | `examples/alist/hx.matrix.yaml`                   |
 | `decoder.parity_matrix_hz` | Path to the Z-type parity-check matrix in YAML format                   | `examples/alist/hz.matrix.yaml`                   |

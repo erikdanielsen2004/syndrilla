@@ -7,3 +7,9 @@ decoder:
   max_b_iter: 181
   dtype: float64
   random_machine: sobol
+  device: 
+    device_type: cuda
+    device_idx: 0
+  logical_check_matrix: True
+  logical_check_lx: examples/alist/lx.matrix.yaml
+  logical_check_lz: examples/alist/lz.matrix.yaml
