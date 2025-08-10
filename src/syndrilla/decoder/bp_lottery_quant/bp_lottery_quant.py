@@ -184,15 +184,17 @@ class create(torch.nn.Module):
             self.i += 1
 
             # variable node update update v2c
+            # quantization inside the function to avoid extra computation
             message = self.vn_update(message, l_v)
-            message = message
 
             # check node update c2v
             message = self.cn_update(message)
             message[:, self.mask_dummy] = float(0.0)
+            # quantization since the output is a multiplication result
             message = fp2fxp(message, self.intwidth, self.fracwidth)
 
             # elementwise LLR update
+            # no quantization since most hardware designs do LLR update and vn update together
             l_v = self.llr_update(u_init, message)
             l_v[:, -1] = float('inf')
 
@@ -247,6 +249,7 @@ class create(torch.nn.Module):
         if self.i == 1:
             return b_c2v
         else:
+            # do quantization here to avoid extra quantization operation on initialization
             return fp2fxp(l_v[:, self.V_c_col] - b_c2v, self.intwidth, self.fracwidth)
         
 
@@ -270,6 +273,7 @@ class create(torch.nn.Module):
         min_1 = sorted[:, :, 1].unsqueeze(2)
         min_result = torch.where(abs_a_v2c == min_0, min_1, min_0)
 
+        # quantization on both beta and min result computation before final multiplication
         return (fp2fxp(beta, self.intwidth, self.fracwidth) * sign * Q_sign  * fp2fxp(min_result, self.intwidth, self.fracwidth))
 
 

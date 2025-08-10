@@ -13,6 +13,7 @@ A PyTorch-based numerical simulator for decoders in quantum error correction.
 ## Table of contents
 - [Syndrilla](#syndrilla)
   - [Table of contents](#table-of-contents)
+  - [Features](#features)
   - [Installation](#installation)
     - [Option 1: pip installation](#option-1-pip-installation)
     - [Option 2: source installation](#option-2-source-installation)
@@ -38,6 +39,15 @@ A PyTorch-based numerical simulator for decoders in quantum error correction.
   - [Citation](#citation)
   - [Contribution](#contribution)
 
+## Features
+1. High modularity: easily customizing your own **decoding algorithms** and **error models**
+2. High compatibility: cross-platform simulation on CPUs, **GPUs**, and even AI accelerators
+3. High performance: showing **10-20X** speedup on GPUs over CPUs
+4. Community focus: support for standard **BPOSD** decoder
+5. Flexible data format: support for **FP16/BF16/FP32/FP64** simulation
+6. Hardware awareness: support for **quantization** simulation
+7. Fine-grained measurement: support for a broad range of metrics, with **degeneracy errors** highlighted
+8. Multi-purpose: allowing researching **new codes, new decoders, new error models**, and beyond
 
 ## Installation
 All provided installation methods allow running ```syndrilla``` in the command line and ```import syndrilla``` as a python module.
@@ -123,7 +133,7 @@ The following table details the configuration parameters used in the error YAML 
 |------------------|---------------------------------------------------------------|---------------------------|
 | `error.model`     | Type of quantum error model applied to data qubits           | `bsc`                     |
 | `error.device.device_type`       | Type of the device where the error injection will happen                                       | `cpu` or `cuda`                                       |
-| `error.device.device_idx`(GPU only)       | Index of the device where the error injection will happen                                       | 0                           |
+| `error.device.device_idx`       | Index of the device where the error injection will happen. This option only works when `device_type = cuda`.                                                        | 0                           |
 | `error.rate`      | Physical error rate                                          | `0.05`                    |
 
 #### 2.2. Syndrome module
@@ -144,6 +154,7 @@ The following table details the configuration parameters used in the syndrome mo
 #### 2.3. Matrix module
 The matrix YAML file defines all configuration parameters associated with the matrix processing.
 An example matrix configuration file that loads a matrix from a alist file is provided in ```hx.matrix.yaml```:
+
 ```
 matrix:
   file_type: alist
@@ -158,7 +169,7 @@ The following table details the configuration parameters used in the matrix modu
 
 #### 2.4. Decoder module
 The decoder YAML file defines all configuration parameters associated with the decoder.
-An example decoder configuration file is provided in ```bposd_hx.decoder.yaml```.
+An example decoder configuration file is provided in ```bposd_hx.decoder.yaml```:
 
 ```
 decoder:
@@ -182,7 +193,7 @@ The following table details the configuration parameters used in the decoder mod
 | `decoder.algorithm`    | List of decoding algorithms used                                            | `[bp_norm_min_sum, osd_0]`                         |
 | `decoder.check_type`   | Type of parity-check matrix used                                            | `hx` or `hz`                                       |
 | `decoder.device.device_type`       | Type of the device where the decoding will happen                                       | `cpu` or `cuda`                                       |
-| `decoder.device.device_idx`(GPU only)       | Index of the device where the decoding will happen                                       | 0                           |
+| `decoder.device.device_idx`       | Index of the device where the decoding will happen. This option only works when `device_type = cuda`.                                      | 0                           |
 | `decoder.max_iter`     | Maximum number of decoding iterations for iterative algorithms              | `131`                                              |
 | `decoder.parity_matrix_hx` | Path to the X-type parity-check matrix in YAML format                   | `examples/alist/hx.matrix.yaml`                   |
 | `decoder.parity_matrix_hz` | Path to the Z-type parity-check matrix in YAML format                   | `examples/alist/hz.matrix.yaml`                   |
