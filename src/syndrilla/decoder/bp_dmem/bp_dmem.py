@@ -35,7 +35,7 @@ class create(torch.nn.Module):
 
         logger.info(f'Creating bp decoder.')
 
-        self.mem_strengths = decoder_cfg.get('mem_strength',)
+        self.mem_strengths = decoder_cfg.get('mem_strength')
 
         # set up default device
         self.device = decoder_cfg.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
@@ -202,11 +202,18 @@ class create(torch.nn.Module):
             return io_dict
     
     def vn_update(self, b_c2v, l_v, bias):
-        errorNum = self.H_shape[1]
-        checkNum = self.H_shape[0]
+        data_flat = b_c2v.flatten(start_dim=1)
+        partitions_flat = self.V_c_col.flatten().repeat(self.batch_size, 1)
+        sum_b_c2v = torch.zeros([self.batch_size, self.H_shape[1] + 1], dtype=self.dtype, device=self.device)
 
-        new_message = b_c2v
+        bias_matrix = bias.repeat(self.H_shape[0], 1)
+        sum_b_c2v = bias_matrix + sum_b_c2v
+        sum_b_c2v.scatter_add_(1, partitions_flat, data_flat)
 
+        sum_b_c2v -= b_c2v 
+        return sum_b_c2v
+
+        """""
         for j in range(errorNum):
             for i in range(checkNum):
                 cur_ans = bias
@@ -215,7 +222,7 @@ class create(torch.nn.Module):
                         cur_ans += b_c2v[curRow][j]
                 new_message[i][j] = cur_ans
         return new_message
-        
+        """
 
     def cn_update(self, a_v2c):
         base = torch.tensor(2.0, dtype=self.dtype)
