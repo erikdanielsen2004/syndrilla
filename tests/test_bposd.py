@@ -14,7 +14,7 @@ from syndrilla.metric import report_metric, compute_avg_metrics
 from syndrilla.logical_check import create_check
 
 
-def test_batch_alist_hx(batch_size=1000, target_error=100):
+def test_batch_alist_hx(batch_size=1000, target_error=1000):
     decoders = create_decoder(yaml_path='examples/alist/bposd_hx.decoder.yaml')
     
     num_decoders = len(decoders)
@@ -152,5 +152,5 @@ def test_batch_alist_hx(batch_size=1000, target_error=100):
 
 if __name__ == '__main__':
     batch_size = 100000
-    target_error = 100
+    target_error = 1000
     test_batch_alist_hx(batch_size, target_error)

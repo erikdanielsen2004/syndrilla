@@ -14,7 +14,7 @@ from syndrilla.metric import report_metric
 from syndrilla.logical_check import create_check
 
 
-def test_batch_alist_hz(batch_size=1000, target_error=100):    
+def test_batch_alist_hz(batch_size=1000, target_error=1000):    
     decoder_yaml = 'examples/alist/lottery_bp_hz.decoder.yaml'
     logical_check_yaml = 'examples/alist/lz.check.yaml'
     cmd = [
@@ -35,7 +35,7 @@ def test_batch_alist_hz(batch_size=1000, target_error=100):
     print('STDERR:\n', result.stderr)
 
 
-def test_batch_alist_hz_quant(batch_size=1000, target_error=100):    
+def test_batch_alist_hz_quant(batch_size=1000, target_error=1000):    
     decoder_yaml = 'examples/alist/lottery_bp_quant_hz.decoder.yaml'
     logical_check_yaml = 'examples/alist/lz.check.yaml'
     cmd = [
@@ -58,6 +58,6 @@ def test_batch_alist_hz_quant(batch_size=1000, target_error=100):
 
 if __name__ == '__main__':
     batch_size = 100000
-    target_error = 100
+    target_error = 1000
     test_batch_alist_hz(batch_size, target_error)
     test_batch_alist_hz_quant(batch_size, target_error)
