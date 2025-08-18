@@ -1,14 +1,9 @@
+<center>
+  <img src="https://raw.githubusercontent.com/UnaryLab/syndrilla/main/images/logo.png" width="150">
+</center>
+
 # Syndrilla
 A PyTorch-based numerical simulator for decoders in quantum error correction.
-
-<table>
-  <tr>
-    <td align="center">
-      <img src="https://raw.githubusercontent.com/UnaryLab/syndrilla/main/images/qrcode_github.com.png" width="120">
-    </td>
-  </tr>
-</table>
-
 
 ## Table of contents
 - [Syndrilla](#syndrilla)
@@ -153,6 +148,11 @@ The following table details the configuration parameters used in the syndrome mo
 
 #### 2.3. Matrix module
 The matrix YAML file defines all configuration parameters associated with the matrix processing.
+Syndrilla accepts matrix from:
+1. [.alist](https://www.inference.org.uk/mackay/codes/alist.html) format introduced by David MacKay, Matthew Davey, and John Lafferty, which contains a sparse matrix.
+2. [.npz](https://numpy.org/doc/2.1/reference/generated/numpy.savez.html) format from NumPy, which contains a sparse matrix.
+3. .txt format containing a dense 2D matrix. Each row represents a check node of the H matrix, in which each 1 entry denotes a connecting variable node to that check node.
+
 An example matrix configuration file that loads a matrix from a alist file is provided in ```hx.matrix.yaml```:
 
 ```
@@ -163,7 +163,7 @@ matrix:
 The following table details the configuration parameters used in the matrix module YAML file.
 | Key              | Description                                                   | Example                   |
 |------------------|---------------------------------------------------------------|---------------------------|
-|`matrix.file_type`| Format of the parity-check matrix file                        | `alist` or `txt` or `npz` |
+|`matrix.file_type`| Format of the parity-check matrix file                        | `alist` or `npz` or `txt` |
 |`matrix.path`     | Path to the parity-check matrix file                          | `examples/alist/surface/surface_10_hx.alist`                     |
 
 
