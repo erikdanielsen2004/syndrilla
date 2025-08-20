@@ -1,14 +1,9 @@
+<center>
+  <img src="https://raw.githubusercontent.com/UnaryLab/syndrilla/main/images/logo.png" width="150">
+</center>
+
 # Syndrilla
 A PyTorch-based numerical simulator for decoders in quantum error correction.
-
-<table>
-  <tr>
-    <td align="center">
-      <img src="https://raw.githubusercontent.com/UnaryLab/syndrilla/main/images/qrcode_github.com.png" width="120">
-    </td>
-  </tr>
-</table>
-
 
 ## Table of contents
 - [Syndrilla](#syndrilla)
@@ -85,7 +80,7 @@ syndrilla -r=tests/test_outputs
           -c=examples/alist/lx.check.yaml 
           -s=examples/alist/perfect.syndrome.yaml 
           -bs=10000 
-          -te=100
+          -te=1000
 ```
 
 Following is a table for detailed explaination on each command line arguments:
@@ -99,7 +94,7 @@ Following is a table for detailed explaination on each command line arguments:
 | `-s`     | Path to syndrome extraction YAML file        | `-s=examples/alist/perfect.syndrome.yaml`         |
 | `-ckpt`  | Path to checkpoint YAML file to resume | `-ch=result_phy_err.yaml`                         |
 | `-bs`    | Number of samples in each batch             | `-bs=10000`                                       |
-| `-te`    | Total number of errors to stop decoding      | `-te=100`                                         |
+| `-te`    | Total number of errors to stop decoding      | `-te=1000`                                         |
 | `-l`     | Level of logger                              | `-l=SUCCESS`                                      |
 
 ### 2. Input format and configurations
@@ -153,6 +148,11 @@ The following table details the configuration parameters used in the syndrome mo
 
 #### 2.3. Matrix module
 The matrix YAML file defines all configuration parameters associated with the matrix processing.
+Syndrilla accepts matrix from:
+1. [.alist](https://www.inference.org.uk/mackay/codes/alist.html) format introduced by David MacKay, Matthew Davey, and John Lafferty, which contains a sparse matrix.
+2. [.npz](https://numpy.org/doc/2.1/reference/generated/numpy.savez.html) format from NumPy, which contains a sparse matrix.
+3. .txt format containing a dense 2D matrix. Each row represents a check node of the H matrix, in which each 1 entry denotes a connecting variable node to that check node.
+
 An example matrix configuration file that loads a matrix from a alist file is provided in ```hx.matrix.yaml```:
 
 ```
@@ -163,7 +163,7 @@ matrix:
 The following table details the configuration parameters used in the matrix module YAML file.
 | Key              | Description                                                   | Example                   |
 |------------------|---------------------------------------------------------------|---------------------------|
-|`matrix.file_type`| Format of the parity-check matrix file                        | `alist` or `txt` or `npz` |
+|`matrix.file_type`| Format of the parity-check matrix file                        | `alist` or `npz` or `txt` |
 |`matrix.path`     | Path to the parity-check matrix file                          | `examples/alist/surface/surface_10_hx.alist`                     |
 
 
@@ -230,44 +230,44 @@ Example output of running above code:
 ```
 decoder_0:
   algorithm: bp_norm_min_sum
-  data qubit accuracy: 0.9745955801104972
-  data qubit correction accuracy: 0.6362010854945646
-  data frame error rate: 0.677
-  syndrome frame error rate: 0.5771
-  logical error rate: 0.615
-  converge failure rate: 0.0379
-  converge success rate: 0.385
+  data qubit accuracy: 0.9750922651933701
+  data qubit correction accuracy: 0.64017367568301
+  data frame error rate: 0.675
+  syndrome frame error rate: 0.5745
+  logical error rate: 0.6114
+  converge failure rate: 0.0369
+  converge success rate: 0.3886
   decoder invoke rate: 1.0
-  average iteration: 76.93480000000001
-  total time (s): '3.60990762710571289e-01'
-  average time per batch (s): '3.60990762710571289e-01'
-  average time per sample (s): '3.60990762710571321e-05'
-  average time per iteration (s): '4.69216482931743878e-07'
+  average iteration: 76.58840000000001
+  total time (s): '3.61253023147583008e-01'
+  average time per batch (s): '3.61253023147583008e-01'
+  average time per sample (s): '3.61253023147583004e-05'
+  average time per iteration (s): '4.71681120310103036e-07'
 decoder_1:
   algorithm: osd_0
-  data qubit accuracy: 0.9811088397790055
-  data qubit correction accuracy: 0.6822300493480665
-  data frame error rate: 0.5335
+  data qubit accuracy: 0.9814502762430939
+  data qubit correction accuracy: 0.6858332553569757
+  data frame error rate: 0.5288
   syndrome frame error rate: 0.0
-  logical error rate: 0.1188
-  converge failure rate: 0.1188
-  converge success rate: 0.8812
-  decoder invoke rate: 0.5771
-  average iteration: 177.48085253855484
-  total time (s): '1.84798192977905273e+00'
-  average time per batch (s): '1.84798192977905273e+00'
-  average time per sample (s): '1.84798192977905264e-04'
-  average time per iteration (s): '1.04122890066555687e-06'
+  logical error rate: 0.1157
+  converge failure rate: 0.1157
+  converge success rate: 0.8843
+  decoder invoke rate: 0.5745
+  average iteration: 177.48424717145343
+  total time (s): '1.84588861465454102e+00'
+  average time per batch (s): '1.84588861465454102e+00'
+  average time per sample (s): '1.84588861465454109e-04'
+  average time per iteration (s): '1.04002954857811950e-06'
 decoder_full:
   H matrix: /home/ya212494/code/syndrilla/examples/alist/surface/surface_10_hx.alist
   batch size: 10000
   batch count: 1
-  target error: 100
-  target error reached: 1188
+  target error: 1000
+  target error reached: 1157
   data type: torch.float64
   physical error rate: 0.05
-  logical error rate: 0.1188
-  total time (s): '2.20897269248962402e+00'
+  logical error rate: 0.1157
+  total time (s): '2.20714163780212402e+00'
 ```
 
 Below tables will help user understand these metrics better.
@@ -319,7 +319,7 @@ syndrilla -r=tests/test_outputs
           -c=examples/alist/lx.check.yaml 
           -s=examples/alist/perfect.syndrome.yaml 
           -bs=10000 
-          -te=100
+          -te=1000
           -ckpt=tests/test_outputs=result_phy_err_0.01.yaml
 ```
 

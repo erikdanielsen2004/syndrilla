@@ -87,5 +87,5 @@ def main(batch_size, target_error):
 
 if __name__ == '__main__':
     batch_size = 100000
-    target_error = 100
+    target_error = 1000
     main(batch_size, target_error)

@@ -95,4 +95,4 @@ def main(target_error):
 
 
 if __name__ == '__main__':
-    main(target_error=100)
+    main(target_error=1000)
