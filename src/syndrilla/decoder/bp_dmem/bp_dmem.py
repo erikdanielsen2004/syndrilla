@@ -36,7 +36,8 @@ class create(torch.nn.Module):
 
         logger.info(f'Creating bp decoder.')
 
-        self.mem_strengths = decoder_cfg.get('mem_strength')
+        self.center = decoder_cfg.get('center')
+        self.width = decoder_cfg.get('width')
 
         # set up default device
         self.device = decoder_cfg.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
@@ -112,7 +113,7 @@ class create(torch.nn.Module):
         
             self.batch_size, _ = syndrome.size()
         
-            memory_strengths = self.create_memory_strengths()
+            memory_strengths = self.create_memory_strengths(self.H_shape[0], self.H_shape[1], self.center, self.width)
             torch.set_default_dtype(self.dtype)
 
             # add a dummy element at the end in case the H (ldpc matrix) does not have the same number of 1s in each check node
