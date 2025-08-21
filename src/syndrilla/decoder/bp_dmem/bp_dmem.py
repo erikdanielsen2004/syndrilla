@@ -1,4 +1,5 @@
 import torch
+import random
 
 from loguru import logger
 
@@ -111,6 +112,7 @@ class create(torch.nn.Module):
         
             self.batch_size, _ = syndrome.size()
         
+            memory_strengths = self.create_memory_strengths()
             torch.set_default_dtype(self.dtype)
 
             # add a dummy element at the end in case the H (ldpc matrix) does not have the same number of 1s in each check node
@@ -274,3 +276,7 @@ class create(torch.nn.Module):
         ones = torch.ones_like(marginals.size())
         sub = ones - mem_strengths
         return (sub * u_init) + marginal_strength
+    
+    def create_memory_strengths(self, rows, cols, center, width):
+        memory_strengths = torch.full([rows, cols], random.uniform(center - width/2, center + width/2))
+        return memory_strengths
