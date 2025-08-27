@@ -36,8 +36,8 @@ class create(torch.nn.Module):
 
         logger.info(f'Creating bp decoder.')
 
-        self.center = decoder_cfg.get('center')
-        self.width = decoder_cfg.get('width')
+        self.center = 0
+        self.width = 1
 
         # set up default device
         self.device = decoder_cfg.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
@@ -274,8 +274,7 @@ class create(torch.nn.Module):
 
     def bias_update(self, mem_strengths, marginals, u_init):
         marginal_strength = mem_strengths * marginals
-        ones = torch.ones_like(marginals.size())
-        sub = ones - mem_strengths
+        sub = 1 - mem_strengths
         return (sub * u_init) + marginal_strength
     
     def create_memory_strengths(self, rows, cols, center, width):
