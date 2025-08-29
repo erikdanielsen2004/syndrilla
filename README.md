@@ -1,6 +1,6 @@
-<div style="text-align: center;">
-  <img src="https://raw.githubusercontent.com/UnaryLab/syndrilla/main/images/logo.png" width="150">
-</div>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/UnaryLab/syndrilla/main/images/logo.png" width="150" />
+</p>
 
 
 # Syndrilla
