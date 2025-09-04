@@ -1,5 +1,5 @@
 # environment.yaml
-name: syndrilla
+name: synd
 channels:
   - conda-forge
   - defaults

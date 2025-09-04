@@ -65,6 +65,10 @@ class create(torch.nn.Module):
             logger.warning(f'Invalid input type <{self.type}>, default to <hx>.')
             self.type = 'hx'
         
+        self.check_type = decoder_cfg.get('check_type', 'hx')
+        if self.check_type.lower() not in {'hx', 'hz'}: 
+            logger.warning(f'Invalid input check type <{self.check_type}>, default to <hx>.')
+            self.check_type = 'hx'
         
 
         # get the column and row index for all 1s in parity check matrix
@@ -104,113 +108,113 @@ class create(torch.nn.Module):
         logger.info(f'Complete.')
 
 
-        def forward(self, io_dict):
-          
-            logger.info(f'Initializing bp (normailized min sum) decoding.')
-
-
-            syndrome = io_dict['synd'].to(dtype=self.dtype).to(self.device)
+    def forward(self, io_dict):
         
-            self.batch_size, _ = syndrome.size()
+        logger.info(f'Initializing bp (normailized min sum) decoding.')
+
+
+        syndrome = io_dict['synd'].to(dtype=self.dtype).to(self.device)
+    
+        self.batch_size, _ = syndrome.size()
+    
+        memory_strengths = self.create_memory_strengths(self.H_shape[0], self.H_shape[1], self.center, self.width)
+        torch.set_default_dtype(self.dtype)
+
+        # add a dummy element at the end in case the H (ldpc matrix) does not have the same number of 1s in each check node
+        N_extended = self.H_shape[1] + 1 
+        l_v = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
+        #bias = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
+        memory_strengths = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
+        e_v = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
+        s_est = torch.zeros([self.batch_size, self.H_shape[0]], dtype=self.dtype, device=self.device)
         
-            memory_strengths = self.create_memory_strengths(self.H_shape[0], self.H_shape[1], self.center, self.width)
-            torch.set_default_dtype(self.dtype)
+        # add dummy column
+        dummy_column = torch.full([self.batch_size,1], float('inf'), dtype=self.dtype, device=self.device)
+        u_init = torch.cat((io_dict['llr0'].to(self.device).to(self.dtype), dummy_column), dim=1)
+        e_out = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
+        l_out = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
+        num_iters = torch.full([self.batch_size], -1, device=self.device)
+        converges = torch.full([self.batch_size], 0, device=self.device)
 
-            # add a dummy element at the end in case the H (ldpc matrix) does not have the same number of 1s in each check node
-            N_extended = self.H_shape[1] + 1 
-            l_v = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
-            #bias = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
-            memory_strengths = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
-            e_v = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
-            s_est = torch.zeros([self.batch_size, self.H_shape[0]], dtype=self.dtype, device=self.device)
-            
-            # add dummy column
-            dummy_column = torch.full([self.batch_size,1], float('inf'), dtype=self.dtype, device=self.device)
-            u_init = torch.cat((io_dict['llr0'].to(self.device).to(self.dtype), dummy_column), dim=1)
-            e_out = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
-            l_out = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
-            num_iters = torch.full([self.batch_size], -1, device=self.device)
-            converges = torch.full([self.batch_size], 0, device=self.device)
+        # set up initialization for all parameters for decoding process 
+        # message is a in place version of a_v2c and b_c2v
+        message = torch.zeros_like(self.V_c_row.unsqueeze(0), dtype=self.dtype, device=self.device).repeat(self.batch_size, 1, 1)
+        message = u_init[:, self.V_c_col]
 
-            # set up initialization for all parameters for decoding process 
-            # message is a in place version of a_v2c and b_c2v
-            message = torch.zeros_like(self.V_c_row.unsqueeze(0), dtype=self.dtype, device=self.device).repeat(self.batch_size, 1, 1)
-            message = u_init[:, self.V_c_col]
+        # compute syndrome for multiplication
+        self.syndrome_neg = torch.where(syndrome == 0.0, 1.0, -1.0).to(self.dtype)
+        self.syndrome_neg = self.syndrome_neg[:, self.V_c_row]
 
-            # compute syndrome for multiplication
-            self.syndrome_neg = torch.where(syndrome == 0.0, 1.0, -1.0).to(self.dtype)
-            self.syndrome_neg = self.syndrome_neg[:, self.V_c_row]
+        logger.info(f'Complete.')
 
-            logger.info(f'Complete.')
+        logger.info(f'Starting decoding iterations.')
+        
+        self.i = 0
+        while self.i < self.max_iter:
+            # variable node update update v2c
+            self.i += 1
 
-            logger.info(f'Starting decoding iterations.')
-            
-            self.i = 0
-            while self.i < self.max_iter:
-                # variable node update update v2c
-                self.i += 1
+            bias = self.bias_update(memory_strengths, l_v, u_init)
+            message = self.cn_update(message)
+            message = self.vn_update(message, l_v, bias)
 
-                bias = self.bias_update(self.mem_strengths, l_v, u_init)
-                message = self.cn_update(message)
-                message = self.vn_update(message, l_v)
+            message[:, self.mask_dummy] = float(0.0)
 
-                message[:, self.mask_dummy] = float(0.0)
+            # elementwise LLR update
+            l_v = self.marginal_update(u_init, message)
+            l_v[:, -1] = float('inf')
 
-                # elementwise LLR update
-                l_v = self.marginal_update(u_init, message)
-                l_v[:, -1] = float('inf')
+            e_v = torch.where(l_v <= 0.0, 1.0, 0.0).to(self.dtype)
 
-                e_v = torch.where(l_v <= 0.0, 1.0, 0.0).to(self.dtype)
+            s_est = self.syndrome_estimation(e_v)
 
-                s_est = self.syndrome_estimation(e_v)
+            # different samples from the same batch may terminated at different iteration (pick the smallest one) 
+            indices = torch.all(s_est == syndrome, 1).nonzero()
+            checker = torch.where(num_iters == -1.0)[0]
+            indices = indices[torch.isin(indices, checker)]
+            if indices.size()[0] > 0:
+                num_iters[indices] = self.i
+                e_out[indices] = e_v[indices]
+                l_out[indices] = l_v[indices]
+                converges[indices] = 1
 
-                # different samples from the same batch may terminated at different iteration (pick the smallest one) 
-                indices = torch.all(s_est == syndrome, 1).nonzero()
-                checker = torch.where(num_iters == -1.0)[0]
-                indices = indices[torch.isin(indices, checker)]
-                if indices.size()[0] > 0:
-                    num_iters[indices] = self.i
-                    e_out[indices] = e_v[indices]
-                    l_out[indices] = l_v[indices]
-                    converges[indices] = 1
-
-                # do the early termination if all batch satisfy the condition
-                if checker.size()[0] == 0:
-                    e_out = e_out[:, :-1]
-                    l_out = l_out[:, :-1]
-                    logger.info(f'Complete.')
-                    logger.info(f'Decoding iterations: <{(self.i)}>.')
-                    io_dict.update({
-                        'e_v': e_out,
-                        'iter': num_iters,
-                        'llr': l_out,
-                        'converge': converges
-                    })
-                    return io_dict
-            
-            checker = torch.where(num_iters == -1)[0]
-            e_out[checker] = e_v[checker]
-            l_out[checker] = l_v[checker]
-            num_iters[checker] = self.max_iter
-            e_out = e_out[:, :-1]
-            l_out = l_out[:, :-1]
-            logger.info(f'Complete.')
-            logger.info(f'Decoding iterations: <{(self.i)}>.')
-            io_dict.update({
-                'e_v': e_out,
-                'iter': num_iters,
-                'llr': l_out,
-                'converge': converges
-            })
-            return io_dict
+            # do the early termination if all batch satisfy the condition
+            if checker.size()[0] == 0:
+                e_out = e_out[:, :-1]
+                l_out = l_out[:, :-1]
+                logger.info(f'Complete.')
+                logger.info(f'Decoding iterations: <{(self.i)}>.')
+                io_dict.update({
+                    'e_v': e_out,
+                    'iter': num_iters,
+                    'llr': l_out,
+                    'converge': converges
+                })
+                return io_dict
+        
+        checker = torch.where(num_iters == -1)[0]
+        e_out[checker] = e_v[checker]
+        l_out[checker] = l_v[checker]
+        num_iters[checker] = self.max_iter
+        e_out = e_out[:, :-1]
+        l_out = l_out[:, :-1]
+        logger.info(f'Complete.')
+        logger.info(f'Decoding iterations: <{(self.i)}>.')
+        io_dict.update({
+            'e_v': e_out,
+            'iter': num_iters,
+            'llr': l_out,
+            'converge': converges
+        })
+        return io_dict
     
     def vn_update(self, b_c2v, l_v, bias):
         data_flat = b_c2v.flatten(start_dim=1)
         partitions_flat = self.V_c_col.flatten().repeat(self.batch_size, 1)
         sum_b_c2v = torch.zeros([self.batch_size, self.H_shape[1] + 1], dtype=self.dtype, device=self.device)
 
-        bias_matrix = bias.repeat(self.H_shape[0], 1)
-        sum_b_c2v = bias_matrix + sum_b_c2v
+        #bias_matrix = torch.full([self.batch_size, self.H_shape[1] + 1], bias, dtype=self.dtype, device=self.device)
+        sum_b_c2v = bias + sum_b_c2v
         sum_b_c2v.scatter_add_(1, partitions_flat, data_flat)
 
         sum_b_c2v -= b_c2v 
@@ -257,8 +261,8 @@ class create(torch.nn.Module):
         sum_b_c2v = torch.zeros([self.batch_size, self.H_shape[1] + 1], dtype=self.dtype, device=self.device)
         # Use index_add to accumulate sums in the result tensor
         
-        bias_matrix = bias.repeat(self.H_shape[0], 1)
-        sum_b_c2v = bias_matrix + sum_b_c2v
+        #bias_matrix = torch.full([self.batch_size, self.H_shape[1] + 1], bias, dtype=self.dtype, device=self.device)
+        sum_b_c2v = bias + sum_b_c2v
         sum_b_c2v.scatter_add_(1, partitions_flat, data_flat)
         return sum_b_c2v
 
@@ -272,9 +276,9 @@ class create(torch.nn.Module):
         return torch.where((estimated_syndrome%2) > 0.0, 1.0, 0.0)
     
 
-    def bias_update(self, mem_strengths, marginals, u_init):
-        marginal_strength = mem_strengths * marginals
-        sub = 1 - mem_strengths
+    def bias_update(self, memory_strengths, marginals, u_init):
+        marginal_strength = memory_strengths * marginals
+        sub = 1 - memory_strengths
         return (sub * u_init) + marginal_strength
     
     def create_memory_strengths(self, rows, cols, center, width):
