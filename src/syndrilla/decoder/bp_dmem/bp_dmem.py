@@ -217,6 +217,8 @@ class create(torch.nn.Module):
         sum_b_c2v = bias + sum_b_c2v
         sum_b_c2v.scatter_add_(1, partitions_flat, data_flat)
 
+        logger.info(str(sum_b_c2v.shape) + f' ' + str(b_c2v.shape))
+
         sum_b_c2v -= b_c2v 
         return sum_b_c2v
 

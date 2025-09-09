@@ -224,6 +224,7 @@ class create(torch.nn.Module):
 
 
     def vn_update(self, b_c2v, l_v):
+        logger.info(str(b_c2v.shape))
         # updating the a_v2c by b_c2v
         if self.i == 1:
             return b_c2v
@@ -260,7 +261,7 @@ class create(torch.nn.Module):
         partitions_flat = self.V_c_col.flatten().repeat(self.batch_size, 1)
         sum_b_c2v = torch.zeros([self.batch_size, self.H_shape[1] + 1], dtype=self.dtype, device=self.device)
         # Use index_add to accumulate sums in the result tensor
-        
+        logger.info(str(sum_b_c2v.shape))
         sum_b_c2v = u_init + sum_b_c2v
         sum_b_c2v.scatter_add_(1, partitions_flat, data_flat)
         return sum_b_c2v
