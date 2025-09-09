@@ -69,7 +69,6 @@ class create(torch.nn.Module):
         if self.check_type.lower() not in {'hx', 'hz'}: 
             logger.warning(f'Invalid input check type <{self.check_type}>, default to <hx>.')
             self.check_type = 'hx'
-        
 
         # get the column and row index for all 1s in parity check matrix
         logger.info(f'Creating hx parity check matrix.')
@@ -78,7 +77,7 @@ class create(torch.nn.Module):
         logger.info(f'Creating hz parity check matrix.')
         self.Hz_matrix = create_parity_matrix(yaml_path=decoder_cfg['parity_matrix_hz'], device=self.device, dtype=self.dtype)
 
-        if self.type.lower() == 'hx':
+        if self.check_type.lower() == 'hx':
             self.H_shape, self.V_c_row, self.V_c_col, self.H_matrix = self.Hx_matrix.get_index()
         else: 
             self.H_shape, self.V_c_row, self.V_c_col, self.H_matrix = self.Hz_matrix.get_index()
@@ -155,13 +154,13 @@ class create(torch.nn.Module):
             self.i += 1
 
             bias = self.bias_update(memory_strengths, l_v, u_init)
+            message = self.vn_update(message, l_v)
             message = self.cn_update(message)
-            message = self.vn_update(message, l_v, bias)
 
             message[:, self.mask_dummy] = float(0.0)
 
             # elementwise LLR update
-            l_v = self.marginal_update(u_init, message)
+            l_v = self.marginal_update(message, u_init)
             l_v[:, -1] = float('inf')
 
             e_v = torch.where(l_v <= 0.0, 1.0, 0.0).to(self.dtype)
@@ -208,30 +207,17 @@ class create(torch.nn.Module):
         })
         return io_dict
     
-    def vn_update(self, b_c2v, l_v, bias):
+
+    def vn_update(self, b_c2v, l_v):
         data_flat = b_c2v.flatten(start_dim=1)
         partitions_flat = self.V_c_col.flatten().repeat(self.batch_size, 1)
         sum_b_c2v = torch.zeros([self.batch_size, self.H_shape[1] + 1], dtype=self.dtype, device=self.device)
 
         #bias_matrix = torch.full([self.batch_size, self.H_shape[1] + 1], bias, dtype=self.dtype, device=self.device)
-        sum_b_c2v = bias + sum_b_c2v
         sum_b_c2v.scatter_add_(1, partitions_flat, data_flat)
-
-        logger.info(str(sum_b_c2v.shape) + f' ' + str(b_c2v.shape))
-
-        sum_b_c2v -= b_c2v 
+        sum_b_c2v = sum_b_c2v[:, self.V_c_col] - b_c2v
         return sum_b_c2v
 
-        """""
-        for j in range(errorNum):
-            for i in range(checkNum):
-                cur_ans = bias
-                for curRow in range(checkNum):
-                    if curRow != i:
-                        cur_ans += b_c2v[curRow][j]
-                new_message[i][j] = cur_ans
-        return new_message
-        """
 
     def cn_update(self, a_v2c):
         base = torch.tensor(2.0, dtype=self.dtype)
@@ -255,7 +241,7 @@ class create(torch.nn.Module):
 
         return beta * sign * Q_sign  * min_result
 
-
+    
     def marginal_update(self, b_c2v, bias):
         # set up the format for both data and partition so they can matching each other
         data_flat = b_c2v.flatten(start_dim=1)
@@ -264,6 +250,7 @@ class create(torch.nn.Module):
         # Use index_add to accumulate sums in the result tensor
         
         #bias_matrix = torch.full([self.batch_size, self.H_shape[1] + 1], bias, dtype=self.dtype, device=self.device)
+        logger.info(str(sum_b_c2v.shape) + ' ' + str(bias.shape))
         sum_b_c2v = bias + sum_b_c2v
         sum_b_c2v.scatter_add_(1, partitions_flat, data_flat)
         return sum_b_c2v
