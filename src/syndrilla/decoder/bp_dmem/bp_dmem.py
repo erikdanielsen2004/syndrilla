@@ -116,14 +116,13 @@ class create(torch.nn.Module):
     
         self.batch_size, _ = syndrome.size()
     
-        memory_strengths = self.create_memory_strengths(self.H_shape[0], self.H_shape[1], self.center, self.width)
         torch.set_default_dtype(self.dtype)
 
         # add a dummy element at the end in case the H (ldpc matrix) does not have the same number of 1s in each check node
         N_extended = self.H_shape[1] + 1 
+        memory_strengths = self.create_memory_strengths(self.batch_size, N_extended, self.center, self.width)
         l_v = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
         #bias = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
-        memory_strengths = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
         e_v = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
         s_est = torch.zeros([self.batch_size, self.H_shape[0]], dtype=self.dtype, device=self.device)
         
@@ -154,7 +153,7 @@ class create(torch.nn.Module):
             self.i += 1
 
             bias = self.bias_update(memory_strengths, l_v, u_init)
-            message = self.vn_update(message, l_v)
+            message = self.vn_update(message, l_v, bias)
             message = self.cn_update(message)
 
             message[:, self.mask_dummy] = float(0.0)
@@ -208,12 +207,13 @@ class create(torch.nn.Module):
         return io_dict
     
 
-    def vn_update(self, b_c2v, l_v):
+    def vn_update(self, b_c2v, l_v, bias):
         data_flat = b_c2v.flatten(start_dim=1)
         partitions_flat = self.V_c_col.flatten().repeat(self.batch_size, 1)
         sum_b_c2v = torch.zeros([self.batch_size, self.H_shape[1] + 1], dtype=self.dtype, device=self.device)
 
         #bias_matrix = torch.full([self.batch_size, self.H_shape[1] + 1], bias, dtype=self.dtype, device=self.device)
+        sum_b_c2v = bias + sum_b_c2v
         sum_b_c2v.scatter_add_(1, partitions_flat, data_flat)
         sum_b_c2v = sum_b_c2v[:, self.V_c_col] - b_c2v
         return sum_b_c2v
@@ -271,5 +271,5 @@ class create(torch.nn.Module):
         return (sub * u_init) + marginal_strength
     
     def create_memory_strengths(self, rows, cols, center, width):
-        memory_strengths = torch.full([rows, cols], random.uniform(center - width/2, center + width/2))
+        memory_strengths = ((center + width/2) - (center-width/2)) * torch.rand([rows, cols], dtype=self.dtype, device=self.device) + (center - width/2)
         return memory_strengths
