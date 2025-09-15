@@ -279,7 +279,7 @@ def load_checkpoint_yaml(path):
             logical_error_rate_all[idx] = float(entry['logical error rate'])*batch_count
             invoke_rate_all[idx] = float(entry['decoder invoke rate'])*batch_count
             converge_fail_all[idx] = float(entry['converge failure rate'])*batch_count
-            converge_succ_all[idx] = float(entry['converge failure rate'])*batch_count
+            converge_succ_all[idx] = float(entry['converge success rate'])*batch_count
 
         return (total_time_all,
                 average_time_sample_all,
