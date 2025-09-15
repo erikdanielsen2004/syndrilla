@@ -51,6 +51,30 @@ class create(torch.nn.Module):
             logger.warning(f'Invalid input maximum iteration <{self.max_iter}>, default to <50>.')
             self.max_iter = 50
         
+        #set up default solution number
+        self.solution = decoder_cfg.get('solution', 5)
+        if self.solution <= 0 or not isinstance(self.solution, int):
+            logger.warning(f'Invalid input solution number <{self.solution}>, default to <5>.')
+            self.solution = 5
+        
+        #initial iteration count
+        self.iteration_initial = decoder_cfg.get('iteration_initial', 80)
+        if self.iteration_initial < 0 or not isinstance(self.iteration_initial, int):
+            logger.warning(f'Invalid input iteration initial <{self.iteration_initial}>, default to <0>.')
+            self.iteration_initial = 80
+
+        #set up default iteration count
+        self.iteration_count = decoder_cfg.get('iteration_count', 60)
+        if self.iteration_count <= 0 or not isinstance(self.iteration_count, int):
+            logger.warning(f'Invalid input iteration count <{self.iteration_count}>, default to <60>.')
+            self.iteration_count = 60
+
+        # set up default R
+        self.R = decoder_cfg.get('R', 5)
+        if self.R <= 0 or not isinstance(self.R, int):
+            logger.warning(f'Invalid input R <{self.R}>, default to <1>.')
+            self.R = 5
+        
         # set up default dtype
         self.dtype = decoder_cfg.get('dtype', 'float64')
         if self.dtype not in {'float32', 'float64', 'bfloat16', 'float16'}: 
@@ -97,6 +121,8 @@ class create(torch.nn.Module):
 
         # set iteration
         self.i = 0
+
+        self.r = 0
         
         # convert to as the parameters in a model
         self.V_c_row = torch.nn.Parameter(self.V_c_row, requires_grad=False)
@@ -150,63 +176,76 @@ class create(torch.nn.Module):
         logger.info(f'Starting decoding iterations.')
         
         self.i = 0
-        while self.i < self.max_iter:
-            # variable node update update v2c
-            self.i += 1
+        self.r = 0
+        while self.r < self.R:
+            self.r += 1
 
-            bias = self.bias_update(memory_strengths, l_v, u_init)
-            logger.info(str(bias))
-            message = self.vn_update(message, l_v, bias)
-            message = self.cn_update(message)
-            message[:, self.mask_dummy] = float(0.0)
+            while self.i < self.max_iter:
+                # variable node update update v2c
+                self.i += 1
 
-            # elementwise LLR update
-            l_v = self.marginal_update(message, bias)
-            l_v[:, -1] = float('inf')
+                bias = self.bias_update(memory_strengths, l_v, u_init)
+                logger.info(str(bias))
+                message = self.vn_update(message, l_v, bias)
+                message = self.cn_update(message)
+                message[:, self.mask_dummy] = float(0.0)
 
-            e_v = torch.where(l_v <= 0.0, 1.0, 0.0).to(self.dtype)
+                # elementwise LLR update
+                l_v = self.marginal_update(message, bias)
+                l_v[:, -1] = float('inf')
 
-            s_est = self.syndrome_estimation(e_v)
+                e_v = torch.where(l_v <= 0.0, 1.0, 0.0).to(self.dtype)
 
-            # different samples from the same batch may terminated at different iteration (pick the smallest one) 
-            indices = torch.all(s_est == syndrome, 1).nonzero()
-            checker = torch.where(num_iters == -1.0)[0]
-            indices = indices[torch.isin(indices, checker)]
-            if indices.size()[0] > 0:
-                num_iters[indices] = self.i
-                e_out[indices] = e_v[indices]
-                l_out[indices] = l_v[indices]
-                converges[indices] = 1
+                s_est = self.syndrome_estimation(e_v)
 
-            # do the early termination if all batch satisfy the condition
-            if checker.size()[0] == 0:
-                e_out = e_out[:, :-1]
-                l_out = l_out[:, :-1]
-                logger.info(f'Complete.')
-                logger.info(f'Decoding iterations: <{(self.i)}>.')
-                io_dict.update({
-                    'e_v': e_out,
-                    'iter': num_iters,
-                    'llr': l_out,
-                    'converge': converges
-                })
-                return io_dict
-        
-        checker = torch.where(num_iters == -1)[0]
-        e_out[checker] = e_v[checker]
-        l_out[checker] = l_v[checker]
-        num_iters[checker] = self.max_iter
-        e_out = e_out[:, :-1]
-        l_out = l_out[:, :-1]
-        logger.info(f'Complete.')
-        logger.info(f'Decoding iterations: <{(self.i)}>.')
-        io_dict.update({
-            'e_v': e_out,
-            'iter': num_iters,
-            'llr': l_out,
-            'converge': converges
-        })
-        return io_dict
+
+                # different samples from the same batch may terminated at different iteration (pick the smallest one) 
+                indices = torch.all(s_est == syndrome, 1).nonzero()
+                checker = torch.where(num_iters == -1.0)[0]
+                indices = indices[torch.isin(indices, checker)]
+                if indices.size()[0] > 0:
+                    num_iters[indices] = self.i
+                    e_out[indices] = e_v[indices]
+                    l_out[indices] = l_v[indices]
+                    converges[indices] = 1
+
+                # do the early termination if all batch satisfy the condition
+                if checker.size()[0] == 0:
+                    e_out = e_out[:, :-1]
+                    l_out = l_out[:, :-1]
+                    logger.info(f'Complete.')
+                    logger.info(f'Decoding iterations: <{(self.i)}>.')
+                    io_dict.update({
+                        'e_v': e_out,
+                        'iter': num_iters,
+                        'llr': l_out,
+                        'converge': converges
+                    })
+                    return io_dict
+            if self.s == self.solution:
+                break 
+            #set next round intitial marginals to previous round final marginals
+            l_v = u_init
+            #update leg count
+            self.r += 1
+
+            
+            checker = torch.where(num_iters == -1)[0]
+            e_out[checker] = e_v[checker]
+            l_out[checker] = l_v[checker]
+            num_iters[checker] = self.max_iter
+            e_out = e_out[:, :-1]
+            l_out = l_out[:, :-1]
+            logger.info(f'Complete.')
+            logger.info(f'Decoding iterations: <{(self.i)}>.')
+            io_dict.update({
+                'e_v': e_out,
+                'iter': num_iters,
+                'llr': l_out,
+                'converge': converges
+            })
+            return io_dict
+            
     
 
     def vn_update(self, b_c2v, l_v, bias):

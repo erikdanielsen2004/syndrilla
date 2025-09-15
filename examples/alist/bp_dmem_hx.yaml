@@ -6,4 +6,4 @@ decoder:
   #bias: ?
   #mem_strength: []
   max_iter: 181
-  dtype: float64
+  dtype: float32

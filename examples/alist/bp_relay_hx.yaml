@@ -1,9 +1,9 @@
 decoder:
-  algorithm: bp_dmem
-  check_type: hz
+  algorithm: bp_relay
+  check_type: hx
   parity_matrix_hx: examples/alist/hx.matrix.yaml
   parity_matrix_hz: examples/alist/hz.matrix.yaml
-  #bias: ?
-  #mem_strength: []
+  solutions: 5
+  legs: 5
   max_iter: 181
   dtype: float32
