@@ -1,6 +1,7 @@
-<center>
-  <img src="https://raw.githubusercontent.com/UnaryLab/syndrilla/main/images/logo.png" width="150">
-</center>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/UnaryLab/syndrilla/main/images/logo.png" width="150" />
+</p>
+
 
 # Syndrilla
 A PyTorch-based numerical simulator for decoders in quantum error correction.
@@ -22,8 +23,8 @@ A PyTorch-based numerical simulator for decoders in quantum error correction.
       - [2.5. Logical check module](#25-logical-check-module)
       - [2.6. Metric module](#26-metric-module)
     - [3. Output format and metrics](#3-output-format-and-metrics)
-      - [3.1. Per-decoder metrics:](#31-per-decoder-metrics)
-      - [3.2. Final metrics:](#32-final-metrics)
+      - [3.1. Per-decoder metrics](#31-per-decoder-metrics)
+      - [3.2. Final metrics](#32-final-metrics)
     - [4. Resume from checkpoint](#4-resume-from-checkpoint)
     - [5. Sweep configurations](#5-sweep-configurations)
   - [Simulation results](#simulation-results)
@@ -270,9 +271,10 @@ decoder_full:
   total time (s): '2.20714163780212402e+00'
 ```
 
-Below tables will help user understand these metrics better.
+#### 3.1. Per-decoder metrics
+Since Syndrilla supports a sequence of decoding algorithms, there are two types of output metrics: (1) per-decoder metrics for each individual decoder, and (2) final metrics after all decoders.
 
-#### 3.1. Per-decoder metrics:
+The following table provides a detailed explanation of the metrics in the output YAML file for per-decoder metrics:
 | Metric                           | Description                                                                 |
 |----------------------------------|-----------------------------------------------------------------------------|
 | `algorithm`                      | Name of the decoding algorithm used (e.g., `bp_norm_min_sum`, `osd_0`)      |
@@ -291,7 +293,8 @@ Below tables will help user understand these metrics better.
 | `average time per iteration (s)` | Average time per iteration per sample in seconds                            |
 
 
-#### 3.2. Final metrics:
+#### 3.2. Final metrics
+The following table provides a detailed explanation of the metrics in the output YAML file for final metrics:
 | Metric                         | Description                                                    |
 |--------------------------------|----------------------------------------------------------------|
 | `H matrix`                     | Path to the parity-check matrix used                           |
