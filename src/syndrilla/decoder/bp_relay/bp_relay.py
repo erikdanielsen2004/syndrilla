@@ -128,7 +128,7 @@ class create(torch.nn.Module):
         self.V_c_row = torch.nn.Parameter(self.V_c_row, requires_grad=False)
         self.V_c_col = torch.nn.Parameter(self.V_c_col, requires_grad=False)
 
-        self.algo = 'bp_dmem'
+        self.algo = 'bp_relay'
         
         logger.info(f'Complete.')
 
@@ -215,17 +215,16 @@ class create(torch.nn.Module):
                 # do the early termination if all batch satisfy the condition
                 if checker.size()[0] == 0:
                     logger.info(str(e_out.size()) + ' ' + str(u_init.size()))
-                    e_out = e_out * bias
-                    e_fin = torch.zeros_like(e_out)
-                    self.s =+ 1
-                    if e_fin > e_out:
-                        e_fin = e_out
-                    e_fin = e_fin[:, :-1]
+                    e_weight = e_out * bias
+                    e_weight = torch.sum(e_weight)
+                    logger.info(str(e_weight.size()) + ' ' + str(e_weight))
+                    self.s += 1
+                    e_out = e_out[:, :-1]
                     l_out = l_out[:, :-1]
                     logger.info(f'Complete.')
                     logger.info(f'Decoding iterations: <{(self.i)}>.')
                     io_dict.update({
-                        'e_v': e_fin,
+                        'e_v': e_out,
                         'iter': num_iters,
                         'llr': l_out,
                         'converge': converges
