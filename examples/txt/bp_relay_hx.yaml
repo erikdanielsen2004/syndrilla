@@ -1,5 +1,5 @@
 decoder:
-  algorithm: bp_realy
+  algorithm: bp_relay
   check_type: hx
   parity_matrix_hx: examples/txt/hx.matrix.yaml
   parity_matrix_hz: examples/txt/hz.matrix.yaml

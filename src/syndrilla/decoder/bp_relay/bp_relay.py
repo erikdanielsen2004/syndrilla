@@ -70,7 +70,7 @@ class create(torch.nn.Module):
             self.iteration_count = 60
 
         # set up default R
-        self.R = decoder_cfg.get('R', 5)
+        self.R = decoder_cfg.get('legs', 5)
         if self.R <= 0 or not isinstance(self.R, int):
             logger.warning(f'Invalid input R <{self.R}>, default to <1>.')
             self.R = 5
@@ -121,9 +121,9 @@ class create(torch.nn.Module):
 
         # set iteration
         self.i = 0
-
         self.r = 0
-        
+        self.s = 0
+
         # convert to as the parameters in a model
         self.V_c_row = torch.nn.Parameter(self.V_c_row, requires_grad=False)
         self.V_c_col = torch.nn.Parameter(self.V_c_col, requires_grad=False)
@@ -156,8 +156,9 @@ class create(torch.nn.Module):
         # add dummy column
         dummy_column = torch.full([self.batch_size,1], float('inf'), dtype=self.dtype, device=self.device)
         u_init = torch.cat((io_dict['llr0'].to(self.device).to(self.dtype), dummy_column), dim=1)
-        logger.info(str(u_init))
+        logger.info(str(u_init.size()))
         e_out = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
+        e_min = torch.full([self.batch_size, N_extended], 10000000000, dtype=self.dtype, device=self.device)
         l_out = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
         num_iters = torch.full([self.batch_size], -1, device=self.device)
         converges = torch.full([self.batch_size], 0, device=self.device)
@@ -175,17 +176,17 @@ class create(torch.nn.Module):
 
         logger.info(f'Starting decoding iterations.')
         
-        self.i = 0
         self.r = 0
+        self.s = 0
         while self.r < self.R:
             self.r += 1
+            self.i = 0
 
             while self.i < self.max_iter:
                 # variable node update update v2c
                 self.i += 1
 
                 bias = self.bias_update(memory_strengths, l_v, u_init)
-                logger.info(str(bias))
                 message = self.vn_update(message, l_v, bias)
                 message = self.cn_update(message)
                 message[:, self.mask_dummy] = float(0.0)
@@ -197,6 +198,8 @@ class create(torch.nn.Module):
                 e_v = torch.where(l_v <= 0.0, 1.0, 0.0).to(self.dtype)
 
                 s_est = self.syndrome_estimation(e_v)
+                logger.info(str(e_out.size()) + ' ' + str(u_init.size()))
+                
 
 
                 # different samples from the same batch may terminated at different iteration (pick the smallest one) 
@@ -211,24 +214,25 @@ class create(torch.nn.Module):
 
                 # do the early termination if all batch satisfy the condition
                 if checker.size()[0] == 0:
-                    e_out = e_out[:, :-1]
+                    logger.info(str(e_out.size()) + ' ' + str(u_init.size()))
+                    e_out = e_out * bias
+                    e_fin = torch.zeros_like(e_out)
+                    self.s =+ 1
+                    if e_fin > e_out:
+                        e_fin = e_out
+                    e_fin = e_fin[:, :-1]
                     l_out = l_out[:, :-1]
                     logger.info(f'Complete.')
                     logger.info(f'Decoding iterations: <{(self.i)}>.')
                     io_dict.update({
-                        'e_v': e_out,
+                        'e_v': e_fin,
                         'iter': num_iters,
                         'llr': l_out,
                         'converge': converges
                     })
                     return io_dict
-            if self.s == self.solution:
-                break 
-            #set next round intitial marginals to previous round final marginals
-            l_v = u_init
-            #update leg count
-            self.r += 1
-
+            if self.s >= self.solution:
+                break
             
             checker = torch.where(num_iters == -1)[0]
             e_out[checker] = e_v[checker]
@@ -245,7 +249,8 @@ class create(torch.nn.Module):
                 'converge': converges
             })
             return io_dict
-            
+        
+
     
 
     def vn_update(self, b_c2v, l_v, bias):
@@ -290,9 +295,7 @@ class create(torch.nn.Module):
         partitions_flat = self.V_c_col.flatten().repeat(self.batch_size, 1)
         sum_b_c2v = torch.zeros([self.batch_size, self.H_shape[1] + 1], dtype=self.dtype, device=self.device)
         # Use index_add to accumulate sums in the result tensor
-        
-        #bias_matrix = torch.full([self.batch_size, self.H_shape[1] + 1], bias, dtype=self.dtype, device=self.device)
-        #logger.info(str(sum_b_c2v.shape) + ' ' + str(bias.shape))
+
         sum_b_c2v = bias + sum_b_c2v
         sum_b_c2v.scatter_add_(1, partitions_flat, data_flat)
         return sum_b_c2v

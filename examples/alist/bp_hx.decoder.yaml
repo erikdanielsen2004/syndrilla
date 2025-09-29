@@ -6,7 +6,7 @@ decoder:
   max_iter: 181
   dtype: float64
   device: 
-    device_type: cuda
+    device_type: cpu
     device_idx: 0
   logical_check_matrix: True
   logical_check_lx: examples/alist/lx.matrix.yaml

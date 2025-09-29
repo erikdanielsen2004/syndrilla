@@ -36,8 +36,16 @@ class create(torch.nn.Module):
 
         logger.info(f'Creating bp decoder.')
 
-        self.center = 0.01
-        self.width = 0.02
+        # set up center and width for memory strength  [−0.254, 0.985]
+        self.center = decoder_cfg.get('center', 0.01)
+        if not isinstance(self.center, float):
+            logger.warning(f'Invalid input center <{self.center}>, default to <0.01>.')
+            self.center = -0.254
+        
+        self.width = decoder_cfg.get('width', 0.02)
+        if not isinstance(self.width, float):
+            logger.warning(f'Invalid input width <{self.width}>, default to <0.02>.')
+            self.width = 0.985
 
         # set up default device
         self.device = decoder_cfg.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
@@ -59,11 +67,6 @@ class create(torch.nn.Module):
         self.dtype = torch.__dict__[self.dtype]
 
         self.batch_size = 1
-
-        self.type = decoder_cfg.get('type', 'hx')
-        if self.type.lower() not in {'hx', 'hz'}: 
-            logger.warning(f'Invalid input type <{self.type}>, default to <hx>.')
-            self.type = 'hx'
         
         self.check_type = decoder_cfg.get('check_type', 'hx')
         if self.check_type.lower() not in {'hx', 'hz'}: 
@@ -109,7 +112,7 @@ class create(torch.nn.Module):
 
     def forward(self, io_dict):
         
-        logger.info(f'Initializing bp (normailized min sum) decoding.')
+        logger.info(f'Initializing DMem-BP decoding.')
 
 
         syndrome = io_dict['synd'].to(dtype=self.dtype).to(self.device)
@@ -121,16 +124,13 @@ class create(torch.nn.Module):
         # add a dummy element at the end in case the H (ldpc matrix) does not have the same number of 1s in each check node
         N_extended = self.H_shape[1] + 1 
         memory_strengths = self.create_memory_strengths(self.batch_size, N_extended, self.center, self.width)
-        #logger.info(str(memory_strengths))
         l_v = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
-        #bias = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
         e_v = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
         s_est = torch.zeros([self.batch_size, self.H_shape[0]], dtype=self.dtype, device=self.device)
         
         # add dummy column
         dummy_column = torch.full([self.batch_size,1], float('inf'), dtype=self.dtype, device=self.device)
         u_init = torch.cat((io_dict['llr0'].to(self.device).to(self.dtype), dummy_column), dim=1)
-        logger.info(str(u_init))
         e_out = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
         l_out = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
         num_iters = torch.full([self.batch_size], -1, device=self.device)
@@ -155,8 +155,7 @@ class create(torch.nn.Module):
             self.i += 1
 
             bias = self.bias_update(memory_strengths, l_v, u_init)
-            logger.info(str(bias))
-            message = self.vn_update(message, l_v, bias)
+            message = self.vn_update(message, bias)
             message = self.cn_update(message)
             message[:, self.mask_dummy] = float(0.0)
 
@@ -208,17 +207,18 @@ class create(torch.nn.Module):
         })
         return io_dict
     
-
-    def vn_update(self, b_c2v, l_v, bias):
+    #helper function to compute the sum for each variable node
+    def sumFunction(self, bias, b_c2v):
         data_flat = b_c2v.flatten(start_dim=1)
         partitions_flat = self.V_c_col.flatten().repeat(self.batch_size, 1)
         sum_b_c2v = torch.zeros([self.batch_size, self.H_shape[1] + 1], dtype=self.dtype, device=self.device)
-        
-        #probably need to change this 
-        sum_b_c2v.scatter_add_(1, partitions_flat, data_flat)
         sum_b_c2v = bias + sum_b_c2v
+        sum_b_c2v.scatter_add_(1, partitions_flat, data_flat)
+        return sum_b_c2v
+
+    def vn_update(self, b_c2v, bias):
+        sum_b_c2v = self.sumFunction(bias, b_c2v)
         sum_b_c2v = sum_b_c2v[:, self.V_c_col] - b_c2v
-        #logger.info(str(self.V_c_col.shape) + ' ' + str(sum_b_c2v.shape) + ' ' + str(data_flat.shape))
         return sum_b_c2v
 
 
@@ -246,16 +246,7 @@ class create(torch.nn.Module):
 
     
     def marginal_update(self, b_c2v, bias):
-        # set up the format for both data and partition so they can matching each other
-        data_flat = b_c2v.flatten(start_dim=1)
-        partitions_flat = self.V_c_col.flatten().repeat(self.batch_size, 1)
-        sum_b_c2v = torch.zeros([self.batch_size, self.H_shape[1] + 1], dtype=self.dtype, device=self.device)
-        # Use index_add to accumulate sums in the result tensor
-        
-        #bias_matrix = torch.full([self.batch_size, self.H_shape[1] + 1], bias, dtype=self.dtype, device=self.device)
-        #logger.info(str(sum_b_c2v.shape) + ' ' + str(bias.shape))
-        sum_b_c2v = bias + sum_b_c2v
-        sum_b_c2v.scatter_add_(1, partitions_flat, data_flat)
+        sum_b_c2v = self.sumFunction(bias, b_c2v)
         return sum_b_c2v
 
 
@@ -267,12 +258,14 @@ class create(torch.nn.Module):
         
         return torch.where((estimated_syndrome%2) > 0.0, 1.0, 0.0)
     
-
+    #function to update bias with memory strength and previous marginals
     def bias_update(self, memory_strengths, marginals, u_init):
         marginal_strength = memory_strengths * marginals
         sub = 1 - memory_strengths
         return (sub * u_init) + marginal_strength
     
+    #function to create memory strengths
     def create_memory_strengths(self, rows, cols, center, width):
         memory_strengths = ((center + width/2) - (center-width/2)) * torch.rand([rows, cols], dtype=self.dtype, device=self.device) + (center - width/2)
         return memory_strengths
+    
