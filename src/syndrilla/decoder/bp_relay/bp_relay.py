@@ -214,21 +214,31 @@ class create(torch.nn.Module):
 
                 # do the early termination if all batch satisfy the condition
                 if checker.size()[0] == 0:
-                    logger.info(str(e_out.size()) + ' ' + str(u_init.size()))
+                    #logger.info(str(e_out.size()) + ' ' + str(u_init.size()))
                     e_weight = e_out * bias
                     e_weight = torch.sum(e_weight)
-                    logger.info(str(e_weight.size()) + ' ' + str(e_weight))
+                    #logger.info(str(e_weight.size()) + ' ' + str(e_weight))
+
+                    if 'e_v' in io_dict:
+                        best_solution = io_dict['e_v']
+                        best_solution_weight = torch.sum(best_solution)
+                    else:
+                        best_solution_weight = 1000000000
+
                     self.s += 1
                     e_out = e_out[:, :-1]
                     l_out = l_out[:, :-1]
+
                     logger.info(f'Complete.')
                     logger.info(f'Decoding iterations: <{(self.i)}>.')
-                    io_dict.update({
-                        'e_v': e_out,
-                        'iter': num_iters,
-                        'llr': l_out,
-                        'converge': converges
-                    })
+
+                    if (e_weight < best_solution_weight):
+                        io_dict.update({
+                            'e_v': e_out,
+                            'iter': num_iters,
+                            'llr': l_out,
+                            'converge': converges
+                        })
                     return io_dict
             if self.s >= self.solution:
                 break
