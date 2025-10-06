@@ -16,7 +16,7 @@ class create(torch.nn.Module):
                  decoder_cfg,
                  **kwargs) -> None:
         """
-        Initialization for bp decoder
+        Initialization for dmem-bp decoder
         Input:
             decoder_cfg: the information that come from config file (yaml)
 
@@ -34,18 +34,18 @@ class create(torch.nn.Module):
 
         super(create, self).__init__()
 
-        logger.info(f'Creating bp decoder.')
+        logger.info(f'Creating dmem decoder.')
 
-        # set up center and width for memory strength  [−0.254, 0.985]
+        # set up center and width for memory strength  [0.01, 0.02]
         self.center = decoder_cfg.get('center', 0.01)
         if not isinstance(self.center, float):
             logger.warning(f'Invalid input center <{self.center}>, default to <0.01>.')
-            self.center = -0.254
+            self.center = 0.01
         
         self.width = decoder_cfg.get('width', 0.02)
         if not isinstance(self.width, float):
             logger.warning(f'Invalid input width <{self.width}>, default to <0.02>.')
-            self.width = 0.985
+            self.width = 0.2
 
         # set up default device
         self.device = decoder_cfg.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
@@ -111,6 +111,26 @@ class create(torch.nn.Module):
 
 
     def forward(self, io_dict):
+        """Disorderd mem-BP(Dmem-BP) decoding algorithm
+        Input:
+            syndrome: estimated syndrome for c-th code node
+
+        Output:
+            e_v: estimated error for c-th code node at i-th iteration
+
+        Parameters:
+            marginals: marginal for each v-th variable node at i-th iteration
+            bias: bias for each v-th variable node at i-th iteration
+            memory_strengths: memory strength for each v-th variable node
+            l_v: Log-likelihood Ratio (LLR) for v-th variable node at i-th iteration
+            u_init: Log-likelihood Ratio (LLR) for v-th variable node (initialization)
+
+            a_v2c: Message from the v-th variable node to c-th check node at i-th iteration
+            b_c2v: Message from the c-th check node to v-th variable node at i-th iteration
+            message: used to represent both a_v2c and b_c2v
+
+            s_est:  estimated syndrome for c-th code node at i-th iteration
+        """
         
         logger.info(f'Initializing DMem-BP decoding.')
 
@@ -208,7 +228,7 @@ class create(torch.nn.Module):
         return io_dict
     
     #helper function to compute the sum for each variable node
-    def sumFunction(self, bias, b_c2v):
+    def sum_func(self, bias, b_c2v):
         data_flat = b_c2v.flatten(start_dim=1)
         partitions_flat = self.V_c_col.flatten().repeat(self.batch_size, 1)
         sum_b_c2v = torch.zeros([self.batch_size, self.H_shape[1] + 1], dtype=self.dtype, device=self.device)
@@ -217,7 +237,7 @@ class create(torch.nn.Module):
         return sum_b_c2v
 
     def vn_update(self, b_c2v, bias):
-        sum_b_c2v = self.sumFunction(bias, b_c2v)
+        sum_b_c2v = self.sum_func(bias, b_c2v)
         sum_b_c2v = sum_b_c2v[:, self.V_c_col] - b_c2v
         return sum_b_c2v
 
@@ -246,7 +266,7 @@ class create(torch.nn.Module):
 
     
     def marginal_update(self, b_c2v, bias):
-        sum_b_c2v = self.sumFunction(bias, b_c2v)
+        sum_b_c2v = self.sum_func(bias, b_c2v)
         return sum_b_c2v
 
 

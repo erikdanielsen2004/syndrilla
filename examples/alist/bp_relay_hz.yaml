@@ -6,4 +6,4 @@ decoder:
   solutions: 5
   legs: 5
   max_iter: 181
-  dtype: float32
+  dtype: float64

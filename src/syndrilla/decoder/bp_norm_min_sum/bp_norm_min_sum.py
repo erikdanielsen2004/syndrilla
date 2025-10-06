@@ -169,10 +169,8 @@ class create(torch.nn.Module):
             self.i += 1
 
             message = self.vn_update(message, l_v)
-            logger.info(str(message.shape))
             # check node update c2v
             message = self.cn_update(message)
-            logger.info(str(message.shape))
             message[:, self.mask_dummy] = float(0.0)
 
             # elementwise LLR update
@@ -196,6 +194,7 @@ class create(torch.nn.Module):
             # do the early termination if all batch satisfy the condition
             if checker.size()[0] == 0:
                 e_out = e_out[:, :-1]
+                logger.info(str(e_out))
                 l_out = l_out[:, :-1]
                 logger.info(f'Complete.')
                 logger.info(f'Decoding iterations: <{(self.i)}>.')
@@ -208,6 +207,7 @@ class create(torch.nn.Module):
                 return io_dict
            
         checker = torch.where(num_iters == -1)[0]
+        logger.info(str(e_out))
         e_out[checker] = e_v[checker]
         l_out[checker] = l_v[checker]
         num_iters[checker] = self.max_iter
@@ -225,7 +225,6 @@ class create(torch.nn.Module):
 
 
     def vn_update(self, b_c2v, l_v):
-        logger.info(str(b_c2v.shape))
         # updating the a_v2c by b_c2v
         if self.i == 1:
             return b_c2v
@@ -262,7 +261,6 @@ class create(torch.nn.Module):
         partitions_flat = self.V_c_col.flatten().repeat(self.batch_size, 1)
         sum_b_c2v = torch.zeros([self.batch_size, self.H_shape[1] + 1], dtype=self.dtype, device=self.device)
         # Use index_add to accumulate sums in the result tensor
-        logger.info(str(sum_b_c2v.shape) + ' ' + str(u_init.shape))
         sum_b_c2v = u_init + sum_b_c2v
         sum_b_c2v.scatter_add_(1, partitions_flat, data_flat)
         logger.info(str(sum_b_c2v.shape))

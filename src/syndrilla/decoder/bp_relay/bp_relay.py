@@ -146,7 +146,6 @@ class create(torch.nn.Module):
 
         # add a dummy element at the end in case the H (ldpc matrix) does not have the same number of 1s in each check node
         N_extended = self.H_shape[1] + 1 
-        memory_strengths = self.create_memory_strengths(self.batch_size, N_extended, self.center, self.width)
         #logger.info(str(memory_strengths))
         l_v = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
         #bias = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
@@ -181,12 +180,14 @@ class create(torch.nn.Module):
         while self.r < self.R:
             self.r += 1
             self.i = 0
+            memory_strengths = self.create_memory_strengths(self.batch_size, N_extended, self.center, self.width)
 
             while self.i < self.max_iter:
                 # variable node update update v2c
                 self.i += 1
 
                 bias = self.bias_update(memory_strengths, l_v, u_init)
+                logger.info(str(bias))
                 message = self.vn_update(message, l_v, bias)
                 message = self.cn_update(message)
                 message[:, self.mask_dummy] = float(0.0)
@@ -214,7 +215,10 @@ class create(torch.nn.Module):
 
                 # do the early termination if all batch satisfy the condition
                 if checker.size()[0] == 0:
-                    #logger.info(str(e_out.size()) + ' ' + str(u_init.size()))
+                    logger.info(str(e_out) + ' ' + str(bias))
+                    bias = bias[:, :-1]
+                    e_out = e_out[:, :-1]
+                    logger.info(str(e_out) + ' ' + str(bias))
                     e_weight = e_out * bias
                     e_weight = torch.sum(e_weight)
                     #logger.info(str(e_weight.size()) + ' ' + str(e_weight))
@@ -226,8 +230,7 @@ class create(torch.nn.Module):
                         best_solution_weight = 1000000000
 
                     self.s += 1
-                    e_out = e_out[:, :-1]
-                    l_out = l_out[:, :-1]
+
 
                     logger.info(f'Complete.')
                     logger.info(f'Decoding iterations: <{(self.i)}>.')
