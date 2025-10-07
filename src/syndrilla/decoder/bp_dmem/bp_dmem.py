@@ -48,10 +48,19 @@ class create(torch.nn.Module):
             self.width = 0.2
 
         # set up default device
-        self.device = decoder_cfg.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+        device_cfg = decoder_cfg.get('device', {})
+        self.device = device_cfg.get('device_type', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
         if self.device not in {'cuda', 'cpu', torch.device('cuda'), torch.device('cpu')}:
             logger.warning(f'Invalid input device <{self.device}>, default to avaliable device in your machine.')
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        if self.device == 'cuda':
+            device_idx = device_cfg.get('device_idx', 0)
+            if device_idx >= torch.cuda.device_count():
+                logger.warning(f'Invalid input device index <{device_idx}>, default to avaliable device in your machine.')
+                self.device = torch.device(f'cuda:0')
+            else:
+                self.device = torch.device(f'cuda:{device_idx}')
 
         # set up default max_iter
         self.max_iter = decoder_cfg.get('max_iter', 50)
@@ -62,12 +71,12 @@ class create(torch.nn.Module):
         # set up default dtype
         self.dtype = decoder_cfg.get('dtype', 'float64')
         if self.dtype not in {'float32', 'float64', 'bfloat16', 'float16'}: 
-            logger.warning(f'Invalid input type <{self.dtype}>, default to <torch.float64>.')
+            logger.warning(f'Invalid input data type <{self.dtype}>, default to <torch.float64>.')
             self.dtype = 'float64'
         self.dtype = torch.__dict__[self.dtype]
 
         self.batch_size = 1
-        
+
         self.check_type = decoder_cfg.get('check_type', 'hx')
         if self.check_type.lower() not in {'hx', 'hz'}: 
             logger.warning(f'Invalid input check type <{self.check_type}>, default to <hx>.')
@@ -227,6 +236,7 @@ class create(torch.nn.Module):
         })
         return io_dict
     
+    
     #helper function to compute the sum for each variable node
     def sum_func(self, bias, b_c2v):
         data_flat = b_c2v.flatten(start_dim=1)
@@ -235,6 +245,7 @@ class create(torch.nn.Module):
         sum_b_c2v = bias + sum_b_c2v
         sum_b_c2v.scatter_add_(1, partitions_flat, data_flat)
         return sum_b_c2v
+
 
     def vn_update(self, b_c2v, bias):
         sum_b_c2v = self.sum_func(bias, b_c2v)
@@ -278,12 +289,14 @@ class create(torch.nn.Module):
         
         return torch.where((estimated_syndrome%2) > 0.0, 1.0, 0.0)
     
+
     #function to update bias with memory strength and previous marginals
     def bias_update(self, memory_strengths, marginals, u_init):
         marginal_strength = memory_strengths * marginals
         sub = 1 - memory_strengths
         return (sub * u_init) + marginal_strength
     
+
     #function to create memory strengths
     def create_memory_strengths(self, rows, cols, center, width):
         memory_strengths = ((center + width/2) - (center-width/2)) * torch.rand([rows, cols], dtype=self.dtype, device=self.device) + (center - width/2)

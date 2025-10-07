@@ -194,7 +194,6 @@ class create(torch.nn.Module):
             # do the early termination if all batch satisfy the condition
             if checker.size()[0] == 0:
                 e_out = e_out[:, :-1]
-                logger.info(str(e_out))
                 l_out = l_out[:, :-1]
                 logger.info(f'Complete.')
                 logger.info(f'Decoding iterations: <{(self.i)}>.')
@@ -207,7 +206,6 @@ class create(torch.nn.Module):
                 return io_dict
            
         checker = torch.where(num_iters == -1)[0]
-        logger.info(str(e_out))
         e_out[checker] = e_v[checker]
         l_out[checker] = l_v[checker]
         num_iters[checker] = self.max_iter

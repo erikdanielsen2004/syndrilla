@@ -70,10 +70,10 @@ class create(torch.nn.Module):
             self.iteration_count = 60
 
         # set up default R
-        self.R = decoder_cfg.get('legs', 5)
+        self.R = decoder_cfg.get('legs', 20)
         if self.R <= 0 or not isinstance(self.R, int):
             logger.warning(f'Invalid input R <{self.R}>, default to <1>.')
-            self.R = 5
+            self.R = 20
         
         # set up default dtype
         self.dtype = decoder_cfg.get('dtype', 'float64')
@@ -147,6 +147,9 @@ class create(torch.nn.Module):
         # add a dummy element at the end in case the H (ldpc matrix) does not have the same number of 1s in each check node
         N_extended = self.H_shape[1] + 1 
         #logger.info(str(memory_strengths))
+        new_e_weight = 0 
+        best_e_weight = 1000000000
+        e_best = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
         l_v = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
         #bias = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
         e_v = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
@@ -157,7 +160,6 @@ class create(torch.nn.Module):
         u_init = torch.cat((io_dict['llr0'].to(self.device).to(self.dtype), dummy_column), dim=1)
         logger.info(str(u_init.size()))
         e_out = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
-        e_min = torch.full([self.batch_size, N_extended], 10000000000, dtype=self.dtype, device=self.device)
         l_out = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
         num_iters = torch.full([self.batch_size], -1, device=self.device)
         converges = torch.full([self.batch_size], 0, device=self.device)
@@ -181,7 +183,11 @@ class create(torch.nn.Module):
             self.r += 1
             self.i = 0
             memory_strengths = self.create_memory_strengths(self.batch_size, N_extended, self.center, self.width)
-
+            if self.r == 1:
+                self.max_iter = self.iteration_initial
+            else:
+                self.max_iter = self.iteration_count
+            
             while self.i < self.max_iter:
                 # variable node update update v2c
                 self.i += 1
@@ -215,28 +221,17 @@ class create(torch.nn.Module):
 
                 # do the early termination if all batch satisfy the condition
                 if checker.size()[0] == 0:
-                    logger.info(str(e_out) + ' ' + str(bias))
                     bias = bias[:, :-1]
                     e_out = e_out[:, :-1]
-                    logger.info(str(e_out) + ' ' + str(bias))
-                    e_weight = e_out * bias
-                    e_weight = torch.sum(e_weight)
-                    #logger.info(str(e_weight.size()) + ' ' + str(e_weight))
-
-                    if 'e_v' in io_dict:
-                        best_solution = io_dict['e_v']
-                        best_solution_weight = torch.sum(best_solution)
-                    else:
-                        best_solution_weight = 1000000000
-
+                    l_out = l_out[:, :-1]
+                    new_e_weight = torch.sum(e_out)
+                    if new_e_weight < best_e_weight:
+                        best_e_weight = new_e_weight
+                        self.e_best = e_out
                     self.s += 1
-
-
                     logger.info(f'Complete.')
                     logger.info(f'Decoding iterations: <{(self.i)}>.')
-
-                    if (e_weight < best_solution_weight):
-                        io_dict.update({
+                    io_dict.update({
                             'e_v': e_out,
                             'iter': num_iters,
                             'llr': l_out,
@@ -245,7 +240,6 @@ class create(torch.nn.Module):
                     return io_dict
             if self.s >= self.solution:
                 break
-            
             checker = torch.where(num_iters == -1)[0]
             e_out[checker] = e_v[checker]
             l_out[checker] = l_v[checker]
@@ -263,18 +257,17 @@ class create(torch.nn.Module):
             return io_dict
         
 
-    
-
     def vn_update(self, b_c2v, l_v, bias):
-        data_flat = b_c2v.flatten(start_dim=1)
-        partitions_flat = self.V_c_col.flatten().repeat(self.batch_size, 1)
-        sum_b_c2v = torch.zeros([self.batch_size, self.H_shape[1] + 1], dtype=self.dtype, device=self.device)
-        
-        #probably need to change this 
-        sum_b_c2v.scatter_add_(1, partitions_flat, data_flat)
-        sum_b_c2v = bias + sum_b_c2v
-        sum_b_c2v = sum_b_c2v[:, self.V_c_col] - b_c2v
-        #logger.info(str(self.V_c_col.shape) + ' ' + str(sum_b_c2v.shape) + ' ' + str(data_flat.shape))
+        if self.i == 1:
+            return b_c2v
+        else:
+            data_flat = b_c2v.flatten(start_dim=1)
+            partitions_flat = self.V_c_col.flatten().repeat(self.batch_size, 1)
+            sum_b_c2v = torch.zeros([self.batch_size, self.H_shape[1] + 1], dtype=self.dtype, device=self.device)
+            
+            sum_b_c2v.scatter_add_(1, partitions_flat, data_flat)
+            sum_b_c2v = bias + sum_b_c2v
+            sum_b_c2v = sum_b_c2v[:, self.V_c_col] - b_c2v
         return sum_b_c2v
 
 
