@@ -248,8 +248,11 @@ class create(torch.nn.Module):
 
 
     def vn_update(self, b_c2v, bias):
-        sum_b_c2v = self.sum_func(bias, b_c2v)
-        sum_b_c2v = sum_b_c2v[:, self.V_c_col] - b_c2v
+        if self.i == 1:
+            return b_c2v
+        else:
+            sum_b_c2v = self.sum_func(bias, b_c2v)
+            sum_b_c2v = sum_b_c2v[:, self.V_c_col] - b_c2v
         return sum_b_c2v
 
 

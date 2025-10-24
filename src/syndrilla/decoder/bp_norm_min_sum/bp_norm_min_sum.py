@@ -64,7 +64,6 @@ class create(torch.nn.Module):
             self.dtype = 'float64'
         self.dtype = torch.__dict__[self.dtype]
 
-        self.batch_size = 1
 
         self.check_type = decoder_cfg.get('check_type', 'hx')
         if self.check_type.lower() not in {'hx', 'hz'}: 
@@ -185,6 +184,8 @@ class create(torch.nn.Module):
             indices = torch.all(s_est == syndrome, 1).nonzero()
             checker = torch.where(num_iters == -1.0)[0]
             indices = indices[torch.isin(indices, checker)]
+            logger.info(str(indices))
+            logger.info(str(indices.size()[0]))
             if indices.size()[0] > 0:
                 num_iters[indices] = self.i
                 e_out[indices] = e_v[indices]
@@ -192,7 +193,9 @@ class create(torch.nn.Module):
                 converges[indices] = 1
 
             # do the early termination if all batch satisfy the condition
-            if checker.size()[0] == 0:
+            logger.info(str(checker.size()))
+            logger.info(str(converges))
+            if checker.size()[0] == indices.size()[0]:
                 e_out = e_out[:, :-1]
                 l_out = l_out[:, :-1]
                 logger.info(f'Complete.')
@@ -261,7 +264,6 @@ class create(torch.nn.Module):
         # Use index_add to accumulate sums in the result tensor
         sum_b_c2v = u_init + sum_b_c2v
         sum_b_c2v.scatter_add_(1, partitions_flat, data_flat)
-        logger.info(str(sum_b_c2v.shape))
         return sum_b_c2v
 
 

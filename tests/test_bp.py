@@ -13,7 +13,7 @@ from syndrilla.metric import report_metric, compute_avg_metrics
 from syndrilla.logical_check import create_check
 
 
-def test_batch_alist_hx(batch_size=10, target_error=1000):
+def test_batch_alist_hx(batch_size=100, target_error=1000):
     decoder_yaml = 'examples/alist/bp_hx.decoder.yaml'
     logical_check_yaml = 'examples/alist/lx.check.yaml'
     cmd = [
