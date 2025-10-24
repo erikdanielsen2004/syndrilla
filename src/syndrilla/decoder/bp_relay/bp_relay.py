@@ -52,10 +52,10 @@ class create(torch.nn.Module):
             self.max_iter = 50
         
         #set up default solution number
-        self.solution = decoder_cfg.get('solution', 50)
+        self.solution = decoder_cfg.get('solution', 5)
         if self.solution <= 0 or not isinstance(self.solution, int):
             logger.warning(f'Invalid input solution number <{self.solution}>, default to <5>.')
-            self.solution = 50
+            self.solution = 5
         
         #initial iteration count
         self.iteration_initial = decoder_cfg.get('iteration_initial', 80)
@@ -70,10 +70,10 @@ class create(torch.nn.Module):
             self.iteration_count = 60
 
         # set up default R
-        self.R = decoder_cfg.get('legs', 20)
+        self.R = decoder_cfg.get('legs', 100)
         if self.R <= 0 or not isinstance(self.R, int):
             logger.warning(f'Invalid input R <{self.R}>, default to <1>.')
-            self.R = 20
+            self.R = 100
         
         # set up default dtype
         self.dtype = decoder_cfg.get('dtype', 'float64')
@@ -232,37 +232,19 @@ class create(torch.nn.Module):
 
             for j in range(self.batch_size):
                 if converges[j] == 1:
-                    solutions[j] += 1
                     if solutions[j] == self.solution:
                         continue
                     else:
                         new_e_weight = torch.sum((e_out[j, :-1] * u_init[j, :-1]))
+                        solutions[j] += 1
                         if new_e_weight < e_solutions[j]:
                             e_solutions[j] = new_e_weight
                             e_best[j, :] = e_out[j, :-1]
-            logger.info(str(solutions))
-            logger.info(str(e_solutions))
-            logger.info(str(e_best))
-            for i in range(self.batch_size):
-                for j in range(self.H_shape[1]):
-                    if e_best[i, j] == 1.0:
-                        logger.info(f'Error at position <{j}> for sample <{i}> with weight <{e_best[i]}>.')
-            for j in range(self.batch_size):
-                solution_sum += solutions[j]
-            if solution_sum == self.batch_size * self.solution:
-                break
+            # for j in range(self.batch_size):
+            #     solution_sum += solutions[j]
+            # if solution_sum == self.batch_size * self.solution:
+            #     break
                         
-            l_out = l_out[:, :-1]
-            logger.info(f'Complete.')
-            logger.info(f'Decoding iterations: <{(self.i)}>.')
-            io_dict.update({
-                'e_v': e_best,
-                'iter': num_iters,
-                'llr': l_out,
-                'converge': converges
-            })
-            return io_dict
-        l_out = l_out[:, :-1]
         logger.info(f'Complete.')
         logger.info(f'Decoding iterations: <{(self.i)}>.')
         io_dict.update({
