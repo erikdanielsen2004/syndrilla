@@ -45,7 +45,7 @@ class create(torch.nn.Module):
         self.width = decoder_cfg.get('width', 0.02)
         if not isinstance(self.width, float):
             logger.warning(f'Invalid input width <{self.width}>, default to <0.02>.')
-            self.width = 0.2
+            self.width = 0.02
 
         # set up default device
         device_cfg = decoder_cfg.get('device', {})
@@ -142,7 +142,6 @@ class create(torch.nn.Module):
         """
         
         logger.info(f'Initializing DMem-BP decoding.')
-
 
         syndrome = io_dict['synd'].to(dtype=self.dtype).to(self.device)
     

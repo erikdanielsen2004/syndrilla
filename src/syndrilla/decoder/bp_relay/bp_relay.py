@@ -36,8 +36,15 @@ class create(torch.nn.Module):
 
         logger.info(f'Creating bp decoder.')
 
-        self.center = 0.01
-        self.width = 0.02
+        self.center = decoder_cfg.get('center', 0.5)
+        if not isinstance(self.center, float):
+            logger.warning(f'Invalid input center <{self.center}>, default to <0.5>.')
+            self.center = 0.5
+
+        self.width = decoder_cfg.get('width', 1.0)
+        if not isinstance(self.width, float):
+            logger.warning(f'Invalid input width <{self.width}>, default to <1.0>.')
+            self.width = 1.0
 
         # set up default device
         self.device = decoder_cfg.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
@@ -45,11 +52,6 @@ class create(torch.nn.Module):
             logger.warning(f'Invalid input device <{self.device}>, default to avaliable device in your machine.')
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        # set up default max_iter
-        self.max_iter = decoder_cfg.get('max_iter', 50)
-        if self.max_iter <= 0 or not isinstance(self.max_iter, int):
-            logger.warning(f'Invalid input maximum iteration <{self.max_iter}>, default to <50>.')
-            self.max_iter = 50
         
         #set up default solution number
         self.solution = decoder_cfg.get('solution', 5)
@@ -70,10 +72,10 @@ class create(torch.nn.Module):
             self.iteration_count = 60
 
         # set up default R
-        self.R = decoder_cfg.get('legs', 100)
-        if self.R <= 0 or not isinstance(self.R, int):
-            logger.warning(f'Invalid input R <{self.R}>, default to <1>.')
-            self.R = 100
+        self.legs = decoder_cfg.get('legs', 20)
+        if self.legs <= 0 or not isinstance(self.legs, int):
+            logger.warning(f'Invalid input R <{self.legs}>, default to <1>.')
+            self.legs = 20
         
         # set up default dtype
         self.dtype = decoder_cfg.get('dtype', 'float64')
@@ -119,10 +121,6 @@ class create(torch.nn.Module):
 
         self.mask_dummy = (self.V_c_col == self.H_shape[1])
 
-        # set iteration
-        self.i = 0
-        self.r = 0
-        self.s = 0
 
         # convert to as the parameters in a model
         self.V_c_row = torch.nn.Parameter(self.V_c_row, requires_grad=False)
@@ -148,7 +146,6 @@ class create(torch.nn.Module):
         N_extended = self.H_shape[1] + 1 
         #logger.info(str(memory_strengths))
         new_e_weight = 0 
-        best_e_weight = 1000000000
         #holds solutions for each sample
         solutions = torch.zeros([self.batch_size], dtype=self.dtype, device=self.device)
         #holds solution weights for each sample
@@ -157,7 +154,6 @@ class create(torch.nn.Module):
         e_best = torch.zeros([self.batch_size, self.H_shape[1]], dtype=self.dtype, device=self.device)
         #holds the curent e_out for each sample
         solution_sum = 0
-        curr = torch.zeros([self.batch_size, self.H_shape[1]], dtype=self.dtype, device=self.device)
         l_v = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
         e_v = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
         s_est = torch.zeros([self.batch_size, self.H_shape[0]], dtype=self.dtype, device=self.device)
@@ -186,10 +182,11 @@ class create(torch.nn.Module):
         
         self.r = 0
         self.s = 0
-        while self.r < self.R:
+        while self.r < self.legs:
             self.r += 1
             self.i = 0
             memory_strengths = self.create_memory_strengths(self.batch_size, N_extended, self.center, self.width)
+
             if self.r == 1:
                 self.max_iter = self.iteration_initial
             else:
@@ -200,7 +197,6 @@ class create(torch.nn.Module):
                 self.i += 1
 
                 bias = self.bias_update(memory_strengths, l_v, u_init)
-                #logger.info(str(bias))
                 message = self.vn_update(message, bias)
                 message = self.cn_update(message)
                 message[:, self.mask_dummy] = float(0.0)
@@ -240,10 +236,9 @@ class create(torch.nn.Module):
                         if new_e_weight < e_solutions[j]:
                             e_solutions[j] = new_e_weight
                             e_best[j, :] = e_out[j, :-1]
-            # for j in range(self.batch_size):
-            #     solution_sum += solutions[j]
-            # if solution_sum == self.batch_size * self.solution:
-            #     break
+                solution_sum += solutions[j]
+            if solution_sum == self.batch_size * self.solution:
+                break
                         
         logger.info(f'Complete.')
         logger.info(f'Decoding iterations: <{(self.i)}>.')
