@@ -148,6 +148,7 @@ class create(torch.nn.Module):
         new_e_weight = 0 
         #holds solutions for each sample
         solutions = torch.zeros([self.batch_size], dtype=self.dtype, device=self.device)
+        good_solutions = torch.zeros([self.batch_size], dtype=self.dtype, device=self.device)
         #holds solution weights for each sample
         e_solutions = torch.full([self.batch_size], float('inf'), dtype=self.dtype, device=self.device)
         #holds the e_out for each best solution
@@ -225,20 +226,33 @@ class create(torch.nn.Module):
                 # do the early termination if all batch satisfy the condition
                 if checker.size()[0] == indices.size()[0]:
                     break
+            if converges[indices] == 1:
+                good_solutions = torch.where(solutions == self.solution, 1, 0)
+                if solutions[good_solutions] == 0:
+                    new_e_weight = torch.sum((e_out[indices, :-1] * u_init[indices, :-1].abs()))
+                    solutions[good_solutions] += 1
+                    if new_e_weight < e_solutions[indices]:
+                        e_solutions[indices] = new_e_weight
+                        e_best[indices, :] = e_out[indices, :-1]
+                else:
+                    continue
+                solutions[indices] += 1
+                if torch.sum(solutions) == self.solution * self.batch_size:
+                    break
 
-            for j in range(self.batch_size):
-                if converges[j] == 1:
-                    if solutions[j] == self.solution:
-                        continue
-                    else:
-                        new_e_weight = torch.sum((e_out[j, :-1] * u_init[j, :-1]))
-                        solutions[j] += 1
-                        if new_e_weight < e_solutions[j]:
-                            e_solutions[j] = new_e_weight
-                            e_best[j, :] = e_out[j, :-1]
-                solution_sum += solutions[j]
-            if solution_sum == self.batch_size * self.solution:
-                break
+            # for j in range(self.batch_size):
+            #     if converges[j] == 1:
+            #         if solutions[j] == self.solution:
+            #             continue
+            #         else:
+            #             new_e_weight = torch.sum((e_out[j, :-1] * u_init[j, :-1].abs()))
+            #             solutions[j] += 1
+            #             if new_e_weight < e_solutions[j]:
+            #                 e_solutions[j] = new_e_weight
+            #                 e_best[j, :] = e_out[j, :-1]
+            #     solution_sum += solutions[j]
+            # if solution_sum == self.batch_size * self.solution:
+            #     break
                         
         logger.info(f'Complete.')
         logger.info(f'Decoding iterations: <{(self.i)}>.')
