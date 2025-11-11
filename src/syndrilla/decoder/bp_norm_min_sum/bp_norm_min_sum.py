@@ -195,7 +195,7 @@ class create(torch.nn.Module):
             # do the early termination if all batch satisfy the condition
             logger.info(str(checker.size()))
             logger.info(str(converges))
-            if checker.size()[0] == indices.size()[0]:
+            if checker.size()[0] == 0:
                 e_out = e_out[:, :-1]
                 l_out = l_out[:, :-1]
                 logger.info(f'Complete.')

@@ -1,25 +1,25 @@
 decoder_0:
   algorithm: bp_relay
-  data qubit accuracy: 0.9993925433603764
-  data qubit correction accuracy: 0.9083047660104758
-  data frame error rate: 0.038073909749862314
-  syndrome frame error rate: 1.514987555459366e-06
-  logical error rate: 3.527756736283973e-05
-  converge failure rate: 3.3762579807380343e-05
-  converge success rate: 0.999964722432643
+  data qubit accuracy: 0.9993953161873507
+  data qubit correction accuracy: 0.9084843529293726
+  data frame error rate: 0.037942289792184794
+  syndrome frame error rate: 2.482159478746509e-06
+  logical error rate: 3.288861309339118e-05
+  converge failure rate: 3.0406453614644683e-05
+  converge success rate: 0.9999671113869071
   decoder invoke rate: 1.0
-  average iteration: 1.4036635645489846
-  total time (s): '3.81212634944915771e+04'
-  average time per batch (s): '4.12523141375301106e-02'
-  average time per sample (s): '4.12523141375309259e-03'
-  average time per iteration (s): '3.11864876274946679e-03'
+  average iteration: 1.4031678560344722
+  total time (s): '3.97659288167953491e+03'
+  average time per batch (s): '1.23381721429709438e-02'
+  average time per sample (s): '1.23381721429707478e-03'
+  average time per iteration (s): '8.40026671773918838e-04'
 decoder_full:
   H matrix: /Users/erik/syndrilla/examples/alist/surface/surface_11_hx.alist
   batch size: 10
-  batch count: 924100
+  batch count: 322300
   target error: 1000
-  target error reached: 326
+  target error reached: 106
   data type: torch.float64
   physical error rate: 0.005
-  logical error rate: 3.527756736283973e-05
-  total time (s): '3.81212634944915771e+04'
+  logical error rate: 3.288861309339118e-05
+  total time (s): '3.97659288167953491e+03'

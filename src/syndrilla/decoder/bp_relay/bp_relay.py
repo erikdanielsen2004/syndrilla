@@ -8,6 +8,7 @@ import numpy as np
 from syndrilla.matrix import create_parity_matrix
 from syndrilla.utils import compute_lz
 
+
 class create(torch.nn.Module):
     """
     This class creates a bp decoder on a single GPU
@@ -36,15 +37,15 @@ class create(torch.nn.Module):
 
         logger.info(f'Creating bp decoder.')
 
-        self.center = decoder_cfg.get('center', 0.5)
+        self.center = decoder_cfg.get('center', 0.37)
         if not isinstance(self.center, float):
             logger.warning(f'Invalid input center <{self.center}>, default to <0.5>.')
-            self.center = 0.5
+            self.center = 0.37
 
-        self.width = decoder_cfg.get('width', 1.0)
+        self.width = decoder_cfg.get('width', 1.25)
         if not isinstance(self.width, float):
             logger.warning(f'Invalid input width <{self.width}>, default to <1.0>.')
-            self.width = 1.0
+            self.width = 1.25
 
         # set up default device
         self.device = decoder_cfg.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
@@ -52,7 +53,6 @@ class create(torch.nn.Module):
             logger.warning(f'Invalid input device <{self.device}>, default to avaliable device in your machine.')
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        
         #set up default solution number
         self.solution = decoder_cfg.get('solution', 5)
         if self.solution <= 0 or not isinstance(self.solution, int):
@@ -121,7 +121,6 @@ class create(torch.nn.Module):
 
         self.mask_dummy = (self.V_c_col == self.H_shape[1])
 
-
         # convert to as the parameters in a model
         self.V_c_row = torch.nn.Parameter(self.V_c_row, requires_grad=False)
         self.V_c_col = torch.nn.Parameter(self.V_c_col, requires_grad=False)
@@ -134,7 +133,6 @@ class create(torch.nn.Module):
     def forward(self, io_dict):
         
         logger.info(f'Initializing bp (normailized min sum) decoding.')
-
 
         syndrome = io_dict['synd'].to(dtype=self.dtype).to(self.device)
     
@@ -211,8 +209,6 @@ class create(torch.nn.Module):
                 s_est = self.syndrome_estimation(e_v)
                 logger.info(str(e_out.size()) + ' ' + str(u_init.size()))
                 
-
-
                 # different samples from the same batch may terminated at different iteration (pick the smallest one) 
                 indices = torch.all(s_est == syndrome, 1).nonzero()
                 checker = torch.where(num_iters == -1.0)[0]
@@ -226,34 +222,22 @@ class create(torch.nn.Module):
                 # do the early termination if all batch satisfy the condition
                 if checker.size()[0] == indices.size()[0]:
                     break
-            if converges[indices] == 1:
-                good_solutions = torch.where(solutions == self.solution, 1, 0)
-                if solutions[good_solutions] == 0:
-                    new_e_weight = torch.sum((e_out[indices, :-1] * u_init[indices, :-1].abs()))
-                    solutions[good_solutions] += 1
-                    if new_e_weight < e_solutions[indices]:
-                        e_solutions[indices] = new_e_weight
-                        e_best[indices, :] = e_out[indices, :-1]
-                else:
-                    continue
-                solutions[indices] += 1
-                if torch.sum(solutions) == self.solution * self.batch_size:
-                    break
+            
+            #relay code to get best weight solution 
+            valid_mask = (converges == 1) & (solutions != self.solution)
+            new_e_weight_all = (e_out[:, :-1] * u_init[:, :-1].abs()).sum(dim=1)
+            solutions = solutions + valid_mask.to(solutions.dtype)
 
-            # for j in range(self.batch_size):
-            #     if converges[j] == 1:
-            #         if solutions[j] == self.solution:
-            #             continue
-            #         else:
-            #             new_e_weight = torch.sum((e_out[j, :-1] * u_init[j, :-1].abs()))
-            #             solutions[j] += 1
-            #             if new_e_weight < e_solutions[j]:
-            #                 e_solutions[j] = new_e_weight
-            #                 e_best[j, :] = e_out[j, :-1]
-            #     solution_sum += solutions[j]
-            # if solution_sum == self.batch_size * self.solution:
-            #     break
-                        
+            #find better solution and update
+            improve_mask = valid_mask & (new_e_weight_all < e_solutions)
+            e_solutions = torch.where(improve_mask, new_e_weight_all, e_solutions)
+            e_best[improve_mask, :] = e_out[improve_mask, :-1]
+
+            #check if we have enough solutions
+            solution_sum = solutions.sum()
+            if solution_sum == self.batch_size * self.solution:
+                break
+          
         logger.info(f'Complete.')
         logger.info(f'Decoding iterations: <{(self.i)}>.')
         io_dict.update({
@@ -264,7 +248,6 @@ class create(torch.nn.Module):
         })
         return io_dict
      
-            
         
     def sum_func(self, bias, b_c2v):
         data_flat = b_c2v.flatten(start_dim=1)
