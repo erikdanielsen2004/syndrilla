@@ -3,6 +3,8 @@ decoder:
   check_type: hx
   parity_matrix_hx: examples/txt/hx.matrix.yaml
   parity_matrix_hz: examples/txt/hz.matrix.yaml
+  center: 0.01
+  width: 0.02
   max_iter: 50
   dtype: float64
   logical_check_matrix: True

@@ -24,6 +24,12 @@ class create(torch.nn.Module):
         Parameters:
             max_iter: the number of maximum iteration of bp decoder
             i: the number of iterations running the decoder
+            center: the center of the memory strength distribution
+            width: the width of the memory strength distribution
+            solution: the number of solutions to find
+            legs: the number of relay legs
+            iteration_initial: the number of initial iterations
+            iteration_count: the number of iterations for each relay leg after the initial one
 
             H_matrix: loaded ldpc matrix, either hx or hz, as 2d tenso
 
@@ -132,7 +138,7 @@ class create(torch.nn.Module):
 
     def forward(self, io_dict):
         
-        logger.info(f'Initializing bp (normailized min sum) decoding.')
+        logger.info(f'Initializing bp-relay decoding.')
 
         syndrome = io_dict['synd'].to(dtype=self.dtype).to(self.device)
     
@@ -142,20 +148,13 @@ class create(torch.nn.Module):
 
         # add a dummy element at the end in case the H (ldpc matrix) does not have the same number of 1s in each check node
         N_extended = self.H_shape[1] + 1 
-        #logger.info(str(memory_strengths))
-        new_e_weight = 0 
-        #holds solutions for each sample
         solutions = torch.zeros([self.batch_size], dtype=self.dtype, device=self.device)
-        good_solutions = torch.zeros([self.batch_size], dtype=self.dtype, device=self.device)
-        #holds solution weights for each sample
         e_solutions = torch.full([self.batch_size], float('inf'), dtype=self.dtype, device=self.device)
-        #holds the e_out for each best solution
         e_best = torch.zeros([self.batch_size, self.H_shape[1]], dtype=self.dtype, device=self.device)
-        #holds the curent e_out for each sample
-        solution_sum = 0
         l_v = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
         e_v = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
         s_est = torch.zeros([self.batch_size, self.H_shape[0]], dtype=self.dtype, device=self.device)
+        solution_sum = 0
         
         # add dummy column
         dummy_column = torch.full([self.batch_size,1], float('inf'), dtype=self.dtype, device=self.device)
@@ -163,7 +162,7 @@ class create(torch.nn.Module):
         logger.info(str(u_init.size()))
         e_out = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
         l_out = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
-        num_iters = torch.full([self.batch_size], -1, device=self.device)
+        num_iters = torch.full([self.batch_size], 0, device=self.device)
         converges = torch.full([self.batch_size], 0, device=self.device)
 
         # set up initialization for all parameters for decoding process 
@@ -185,6 +184,8 @@ class create(torch.nn.Module):
             self.r += 1
             self.i = 0
             memory_strengths = self.create_memory_strengths(self.batch_size, N_extended, self.center, self.width)
+            num_iters_local = torch.full([self.batch_size], -1, device=self.device)
+            logger.info(f'Starting leg <{self.r}> decoding.')
 
             if self.r == 1:
                 self.max_iter = self.iteration_initial
@@ -207,14 +208,14 @@ class create(torch.nn.Module):
                 e_v = torch.where(l_v <= 0.0, 1.0, 0.0).to(self.dtype)
 
                 s_est = self.syndrome_estimation(e_v)
-                logger.info(str(e_out.size()) + ' ' + str(u_init.size()))
                 
                 # different samples from the same batch may terminated at different iteration (pick the smallest one) 
                 indices = torch.all(s_est == syndrome, 1).nonzero()
-                checker = torch.where(num_iters == -1.0)[0]
+                checker = torch.where(num_iters_local == -1.0)[0]
                 indices = indices[torch.isin(indices, checker)]
                 if indices.size()[0] > 0:
-                    num_iters[indices] = self.i
+                    num_iters[indices] += self.i
+                    num_iters_local[indices] = self.i
                     e_out[indices] = e_v[indices]
                     l_out[indices] = l_v[indices]
                     converges[indices] = 1
@@ -309,6 +310,7 @@ class create(torch.nn.Module):
         sub = 1 - memory_strengths
         return (sub * u_init) + marginal_strength
     
+
     def create_memory_strengths(self, rows, cols, center, width):
         memory_strengths = ((center + width/2) - (center-width/2)) * torch.rand([rows, cols], dtype=self.dtype, device=self.device) + (center - width/2)
         return memory_strengths

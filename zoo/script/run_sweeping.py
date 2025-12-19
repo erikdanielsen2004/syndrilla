@@ -10,7 +10,7 @@ from loguru import logger
 from pathlib import Path
 
 
-decoder_list = ['bposd', 'bposd_quant', 'lottery_bp', 'lottery_bp_quant', 'lottery_bposd', 'lottery_bposd_quant']
+decoder_list = ['bp_relay', 'bposd']
 
 
 def parse_commandline_args():
@@ -21,7 +21,7 @@ def parse_commandline_args():
         description='Test code for the decoder zoo.')
     parser.add_argument('-r', '--run_dir', type=str, default=None,
                         help = 'The run directory.')
-    parser.add_argument('-d', '--decoder', type=str, default='bposd',
+    parser.add_argument('-d', '--decoder', type=str, default='bp_relay',
                         help = 'The decoder.')
     parser.add_argument('-bs', '--batch_size', type=int, default=10000,
                         help = 'The number of samples run each batch.')

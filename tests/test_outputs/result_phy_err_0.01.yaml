@@ -1,0 +1,25 @@
+decoder_0:
+  algorithm: bp_norm_min_sum
+  data qubit accuracy: 0.9993269230769231
+  data qubit correction accuracy: 0.9347984822822806
+  data frame error rate: 0.060200000000000004
+  syndrome frame error rate: 0.051750000000000004
+  logical error rate: 0.051750000000000004
+  converge failure rate: 0.0
+  converge success rate: 0.94825
+  decoder invoke rate: 1.0
+  average iteration: 10.6282
+  total time (s): '1.77717678546905518e+01'
+  average time per batch (s): '8.88588392734527588e+00'
+  average time per sample (s): '8.88588392734527676e-04'
+  average time per iteration (s): '8.35926050205387366e-05'
+decoder_full:
+  H matrix: /home/th157962/testing_relay/syndrilla/examples/alist/surface/surface_11_hx.alist
+  batch size: 10000
+  batch count: 2
+  target error: 1000
+  target error reached: 1035
+  data type: torch.float64
+  physical error rate: 0.01
+  logical error rate: 0.051750000000000004
+  total time (s): '1.77717678546905518e+01'

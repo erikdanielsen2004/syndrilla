@@ -1,6 +1,6 @@
 error:
   model: bsc
   device: 
-    device_type: cpu
+    device_type: cuda
     device_idx: 0
-  rate: 0.005
+  rate: 0.5
