@@ -1,0 +1,16 @@
+decoder:
+  algorithm: bp_relay
+  check_type: hx
+  parity_matrix_hx: zoo/bp_relay_sweeping/surface_hx_0.001_11_float32/hx.matrix.yaml
+  parity_matrix_hz: zoo/bp_relay_sweeping/surface_hx_0.001_11_float32/hz.matrix.yaml
+  center: 0.5
+  width: 1.0
+  iteration_initial: 80
+  iteration_count: 60
+  solution: 5
+  legs: 5
+  max_iter: 221
+  dtype: float32
+  logical_check_matrix: true
+  logical_check_lx: zoo/bp_relay_sweeping/surface_hx_0.001_11_float32/lx.matrix.yaml
+  logical_check_lz: zoo/bp_relay_sweeping/surface_hx_0.001_11_float32/lz.matrix.yaml
