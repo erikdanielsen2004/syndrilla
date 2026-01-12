@@ -82,7 +82,7 @@ def tag_to_str(tag: list):
     return str(tag_sorted)
 
 
-def lookup_results_dict(input_dict: OrderedDict(), key_list: list):
+def lookup_results_dict(input_dict: OrderedDict, key_list: list):
     # query a dict with arbitrary key order in the list, until finding a value query path
     temp_dict = input_dict
     temp_key_list = key_list
