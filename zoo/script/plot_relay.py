@@ -13,11 +13,6 @@ if str(current_path) not in sys.path:
 from zoo.script.plot_utils import load_results_dict, tag_to_str, is_substring, lookup_results_dict
 
 def main():
-    values = [1, 2, 3, 4, 5]
-    values2 = [5, 10, 15, 20 ,25]
-
-    
-
     base_dir = "zoo/relay_results"
 
     dir_bp_relay = f'{base_dir}/bp_relay_sweeping'
