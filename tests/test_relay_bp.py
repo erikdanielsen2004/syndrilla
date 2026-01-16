@@ -14,7 +14,7 @@ from syndrilla.logical_check import create_check
 
 
 def test_batch_alist_hx(batch_size=10000, target_error=1000):
-    decoder_yaml = 'examples/alist/bp_relay_hx.yaml'
+    decoder_yaml = 'examples/alist/bp_relay_hx.decoder.yaml'
     logical_check_yaml = 'examples/alist/lx.check.yaml'
     cmd = [
         'syndrilla',
