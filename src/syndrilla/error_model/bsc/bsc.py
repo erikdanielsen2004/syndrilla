@@ -28,26 +28,53 @@ class create():
                 self.device = torch.device(f'cuda:0')
             else:
                 self.device = torch.device(f'cuda:{device_idx}')
+        self.number_channel = error_model_cfg.get('number_channel', 1)
 
 
     def inject_error(self, codeword, batch_size:int=0):
         logger.info(f'Injecting error.')
-
-        codeword = codeword.to(self.device)
-        if batch_size == 0:
-            batch_size = codeword.size(0)
-        # random values in [0,1)
-        random_values = torch.rand_like(codeword)
-        self.dtype = codeword.dtype
-        self.len = codeword.shape
-        
-        error = torch.where(random_values < self.rate, 1 - codeword, codeword)
-        dataloader = torch.utils.data.DataLoader(dataset(error, self.get_llr(), torch.arange(0, codeword.size(0))), batch_size=batch_size, shuffle=False)
-        logger.info(f'Injection complete.')
+        if self.number_channel == 1:
+            codeword = codeword.to(self.device)
+            if batch_size == 0:
+                batch_size = codeword.size(0)
+            # random values in [0,1)
+            random_values = torch.rand_like(codeword)
+            self.dtype = codeword.dtype
+            self.len = codeword.shape
+            
+            error = torch.where(random_values < self.rate, 1 - codeword, codeword)
+            dataloader = torch.utils.data.DataLoader(dataset(error, self.get_llr(error), torch.arange(0, codeword.size(0))), batch_size=batch_size, shuffle=False)
+            logger.info(f'Injection complete.')
+        else:
+            codeword = codeword.to(self.device)
+            if batch_size == 0:
+                batch_size = codeword.size(0)
+            # random values in [0,1)
+            random_values_x = torch.rand_like(codeword)
+            random_values_z = torch.rand_like(codeword)
+            self.dtype = codeword.dtype
+            self.len = codeword.shape
+            error_x = torch.where(random_values_x < self.rate, 1 - codeword, codeword)
+            error_z = torch.where(random_values_z < self.rate, 1 - codeword, codeword)
+            error = torch.stack((error_x, error_z), 1)
+            dataloader = torch.utils.data.DataLoader(dataset(error, self.get_llr(error), torch.arange(0, codeword.size(0))), batch_size=batch_size, shuffle=False)
+            logger.info(f'Injection complete.')
         return error, dataloader
     
 
-    def get_llr(self):
-        llr =  torch.full(self.len, math.log((1 - self.rate)/self.rate), device=self.device, dtype=self.dtype)
+    def get_llr(self, error):
+        if self.number_channel == 1:
+            llr =  torch.full(self.len, math.log((1 - self.rate)/self.rate), device=self.device, dtype=self.dtype)
+        else: 
+            p = self.rate
+        # Probabilities for each Pauli event
+            p_I = 1 - p * p - 2 * p
+            p_X = p*(1-p)
+            p_Y = p*p
+            p_Z = p*(1-p)
+
+            # Stack probabilities per qubit
+            probs = torch.tensor([p_I, p_X, p_Y, p_Z], device=self.device, dtype=self.dtype)
+            llr = probs.view(4, 1).expand(4, error.shape[2]).unsqueeze(0).repeat(error.shape[0], 1, 1)
         return llr
     

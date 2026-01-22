@@ -1,0 +1,345 @@
+import torch
+
+from loguru import logger
+
+import numpy as np
+
+from syndrilla.matrix import create_parity_matrix
+from syndrilla.utils import compute_lz
+
+
+class create(torch.nn.Module):
+    """
+    This class creates a bp decoder on a single GPU
+    """
+    def __init__(self,
+                 decoder_cfg,
+                 **kwargs) -> None:
+        """
+        Initialization for bp decoder
+        Input:
+            decoder_cfg: the information that come from config file (yaml)
+
+        Parameters:
+            max_iter: the number of maximum iteration of bp decoder
+            i: the number of iterations running the decoder
+
+            H_matrix: loaded ldpc matrix, either hx or hz, as 2d tensor
+
+            V_c_row: the row index of all the variable nodes for each check node
+            V_c_col: the column index of all the variable nodes for each check node
+
+            degree: the maximum number of 1s in all check nodes in H_matrix
+        """
+
+        super(create, self).__init__()
+
+        logger.info(f'Creating bp decoder.')
+
+        # set up default device
+        device_cfg = decoder_cfg.get('device', {})
+        self.device = device_cfg.get('device_type', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+        if self.device not in {'cuda', 'cpu', torch.device('cuda'), torch.device('cpu')}:
+            logger.warning(f'Invalid input device <{self.device}>, default to avaliable device in your machine.')
+            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        if self.device == 'cuda':
+            device_idx = device_cfg.get('device_idx', 0)
+            if device_idx >= torch.cuda.device_count():
+                logger.warning(f'Invalid input device index <{device_idx}>, default to avaliable device in your machine.')
+                self.device = torch.device(f'cuda:0')
+            else:
+                self.device = torch.device(f'cuda:{device_idx}')
+
+        # set up default max_iter
+        self.max_iter = decoder_cfg.get('max_iter', 50)
+        if self.max_iter <= 0 or not isinstance(self.max_iter, int):
+            logger.warning(f'Invalid input maximum iteration <{self.max_iter}>, default to <50>.')
+            self.max_iter = 50
+        
+        # set up default dtype
+        self.dtype = decoder_cfg.get('dtype', 'float64')
+        if self.dtype not in {'float32', 'float64', 'bfloat16', 'float16'}: 
+            logger.warning(f'Invalid input data type <{self.dtype}>, default to <torch.float64>.')
+            self.dtype = 'float64'
+        self.dtype = torch.__dict__[self.dtype]
+
+        self.batch_size = 1
+
+        self.d = decoder_cfg.get('damping_factor', '0.1')
+        if self.d <= 0 or self.d > 1:
+            logger.warning(f'Invalid input damping factor <{self.d}>, default to <0.1>.')
+            self.max_iter = 50
+
+        # get the column and row index for all 1s in parity check matrix
+        logger.info(f'Creating hx parity check matrix.')
+        self.Hx_matrix = create_parity_matrix(yaml_path=decoder_cfg['parity_matrix_hx'], device=self.device, dtype=self.dtype)
+
+        logger.info(f'Creating hz parity check matrix.')
+        self.Hz_matrix = create_parity_matrix(yaml_path=decoder_cfg['parity_matrix_hz'], device=self.device, dtype=self.dtype)
+
+       
+        self.H_shape, self.Hx_V_c_row, self.Hx_V_c_col, _ = self.Hx_matrix.get_index()
+        _, self.Hz_V_c_row, self.Hz_V_c_col, _ = self.Hz_matrix.get_index()
+        
+        # compute lx, switch hx and hz position can compute lz
+        # currently, lx and lz are following bposd, https://github.com/quantumgizmos/bp_osd
+        logger.info(f'Creating lx and lz parity check matrix.')
+        logical_check_matrix =  decoder_cfg.get('logical_check_matrix', False)
+        if logical_check_matrix:
+            self.lx_matrix = create_parity_matrix(yaml_path=decoder_cfg['logical_check_lx'], device=self.device, dtype=self.dtype).get_dense()
+            self.lz_matrix = create_parity_matrix(yaml_path=decoder_cfg['logical_check_lz'], device=self.device, dtype=self.dtype).get_dense()
+        else:
+            self.lx_matrix = compute_lz(self.Hz_matrix.get_dense(), self.Hx_matrix.get_dense())
+            self.lz_matrix = compute_lz(self.Hx_matrix.get_dense(), self.Hz_matrix.get_dense())
+
+        self.mask_dummy = (self.Hx_V_c_col == self.H_shape[1])
+
+        # set iteration
+        self.i = 0
+        
+        self.H_matrix = torch.stack((self.Hx_V_c_row, self.Hz_V_c_row))
+        
+        # convert to as the parameters in a model
+        self.V_c_row = torch.nn.Parameter(torch.stack((self.Hx_V_c_row, self.Hz_V_c_row)), requires_grad=False)
+        self.V_c_col = torch.nn.Parameter(torch.stack((self.Hx_V_c_col, self.Hz_V_c_col)), requires_grad=False)
+
+        self.algo = 'bp4'
+        
+        logger.info(f'Complete.')
+
+
+    def forward(self, io_dict):
+        """Iterative bp4 (normalized min sum) decoding algorithm
+        Input:
+            syndrome: estimated syndrome for c-th code node
+
+        Output:
+            e_v: estimated error for c-th code node at i-th iteration
+
+        Parameters:
+            llr:  Log-likelihood Ratio (LLR) for each v-th variable node (initialization)
+            l_v: Log-likelihood Ratio (LLR) for v-th variable node at i-th iteration
+            u_init: Log-likelihood Ratio (LLR) for v-th variable node (initialization)
+
+            a_v2c: Message from the v-th variable node to c-th check node at i-th iteration
+            b_c2v: Message from the c-th check node to v-th variable node at i-th iteration
+            message: used to represent both a_v2c and b_c2v
+
+            s_est:  estimated syndrome for c-th code node at i-th iteration
+        """
+        logger.info(f'Initializing bp (normailized min sum) decoding.')
+
+
+        syndrome = io_dict['synd'].to(dtype=self.dtype).to(self.device)
+        
+        self.batch_size, self.number_channel, _ = syndrome.size()
+        
+        torch.set_default_dtype(self.dtype)
+
+        # add a dummy element at the end in case the H (ldpc matrix) does not have the same number of 1s in each check node
+        self.N_extended = self.H_shape[1] + 1 
+        l_v = torch.zeros([self.batch_size, self.number_channel, self.N_extended], dtype=self.dtype, device=self.device)
+        e_v = torch.zeros([self.batch_size, self.number_channel, self.N_extended], dtype=self.dtype, device=self.device)
+        
+        # add dummy column
+        dummy_column = torch.full([self.batch_size, 4, 1], float('inf'), dtype=self.dtype, device=self.device)
+        
+        u_init = torch.cat((io_dict['llr0'].to(self.device).to(self.dtype), dummy_column), dim=2)
+        e_out = torch.zeros([self.batch_size, self.number_channel, self.N_extended], dtype=self.dtype, device=self.device)
+        l_out = torch.zeros([self.batch_size, self.number_channel, self.N_extended], dtype=self.dtype, device=self.device)
+        num_iters = torch.full([self.batch_size], -1, device=self.device)
+        converges = torch.full([self.batch_size], 0, device=self.device)
+
+        # set up initialization for all parameters for decoding process 
+        # message is a in place version of a_v2c and b_c2v
+        message = torch.zeros_like(self.V_c_row.unsqueeze(0), dtype=self.dtype, device=self.device).repeat(self.batch_size, 1, 1, 1)
+
+        # self.syndrome_neg = self.syndrome_neg[:, channel_idx[:, None, None], self.V_c_row]
+        chan = torch.cat((io_dict['llr0'].to(self.device).to(self.dtype), dummy_column), dim=2)
+        bitnode = torch.cat((io_dict['llr0'].to(self.device).to(self.dtype), dummy_column), dim=2)
+        oldbitnode = torch.cat((io_dict['llr0'].to(self.device).to(self.dtype), dummy_column), dim=2)
+
+        # initialize messages
+        self.eps = 1e-40
+        pI, pX, pY, pZ = u_init[:, 0], u_init[:, 1], u_init[:, 2], u_init[:, 3]
+        x_msg = torch.log((pI + pX + self.eps) / (pY + pZ + self.eps))
+        z_msg = torch.log((pI + pZ + self.eps) / (pX + pY + self.eps))
+        message[:, 0] = x_msg[:, self.V_c_col[0]]  # channel 0: X
+        message[:, 1] = z_msg[:, self.V_c_col[1]] 
+        
+        logger.info(f'Complete.')
+
+        logger.info(f'Starting decoding iterations.')
+        
+        self.i = 0
+        while self.i < self.max_iter:
+            # variable node update update v2c
+            self.i += 1
+
+            # check node update c2v
+            message = self.check2bit_ms(message, syndrome)
+            message[:, :, self.mask_dummy] = float(0.0)
+
+            bitnode, new_err = self.convert_prob(message, bitnode, oldbitnode, chan, self.d)
+ 
+            oldbitnode = bitnode / bitnode.sum(dim=1, keepdim=True).clamp_min(self.eps)
+
+            # elementwise LLR update
+            message = self.convert_llr(bitnode, new_err)
+            x_bits, z_bits = self.hard_decision(bitnode)
+
+            convergent_mask = self.syndrome_estimation(x_bits, z_bits, syndrome)
+
+            # different samples from the same batch may terminated at different iteration (pick the smallest one) 
+            indices = torch.nonzero(convergent_mask == 1)
+            checker = torch.where(num_iters == -1.0)[0]
+
+            indices = indices[torch.isin(indices, checker)]
+            if indices.size()[0] > 0:
+                num_iters[indices] = self.i
+                e_out[indices] = e_v[indices]
+                l_out[indices] = l_v[indices]
+                converges[indices] = 1
+            # do the early termination if all batch satisfy the condition
+            if checker.size()[0] == 0:
+                e_out = e_out[:, :, :-1]
+                l_out = l_out[:, :, :-1]
+                logger.info(f'Complete.')
+                logger.info(f'Decoding iterations: <{(self.i)}>.')
+                logger.info(f'e_out = {e_out}')
+                io_dict.update({
+                    'e_v': e_out,
+                    'iter': num_iters,
+                    'llr': l_out,
+                    'converge': converges
+                })
+                return io_dict
+           
+        checker = torch.where(num_iters == -1)[0]
+        e_out[checker] = e_v[checker]
+        l_out[checker] = l_v[checker]
+        num_iters[checker] = self.max_iter
+        e_out = e_out[:, :, :-1]
+        l_out = l_out[:, :, :-1]
+        logger.info(f'Complete.')
+        logger.info(f'Decoding iterations: <{(self.i)}>.')
+        logger.info(f'e_out = {e_out}')
+        io_dict.update({
+            'e_v': e_out,
+            'iter': num_iters,
+            'llr': l_out,
+            'converge': converges
+        })
+        return io_dict
+        
+
+    def check2bit_ms(self, a_v2c, syndrome):
+        # checks
+        check_node = 1.0 - 2.0 * syndrome.to(self.dtype)
+        channel_idx = torch.arange(self.number_channel, device=check_node.device)
+        # compute sgn
+        sign = torch.sgn(a_v2c)
+
+        check_node = check_node[:, channel_idx[:, None, None], self.V_c_row]
+        
+        # sign = torch.where(sign == 0.0, -1.0, sign)
+        sign_prod = torch.prod(sign, dim=3, keepdim=True)
+        
+        # compute min
+        abs_a_v2c = torch.abs(a_v2c)
+        sorted, _ = torch.sort(abs_a_v2c, dim=3)  # Changed from dim=2 to dim=3
+        min_0 = sorted[:, :, :, 0].unsqueeze(3)  # Added extra : for channel dimension
+        min_1 = sorted[:, :, :, 1].unsqueeze(3)  # Added extra : for channel dimension
+        min_result = torch.where(abs_a_v2c == min_0, min_1, min_0)
+        return check_node * sign_prod * sign  * min_result
+    
+    def convert_prob(self, a_v2c, bitnode, oldbitnode, chan, d):
+        bitnode[:, :] = torch.pow(chan, 1.0 - d) * torch.pow(oldbitnode, d)
+        err_neg = 0.5 / (1.0 + torch.exp(-a_v2c))
+        err_pos = 0.5 / (1.0 + torch.exp(a_v2c))
+        new_err = torch.zeros((self.batch_size, 2, 4, self.H_shape[0], 4), dtype=a_v2c.dtype, device=a_v2c.device)
+        new_err[:, 0, 0] = err_neg[:, 0]
+        new_err[:, 0, 1] = err_neg[:, 0]
+        new_err[:, 0, 2] = err_pos[:, 0]
+        new_err[:, 0, 3] = err_pos[:, 0]
+
+        new_err[:, 1, 0] = err_neg[:, 1]
+        new_err[:, 1, 1] = err_pos[:, 1]
+        new_err[:, 1, 2] = err_pos[:, 1]
+        new_err[:, 1, 3] = err_neg[:, 1]
+        
+        data_flat = new_err.flatten(start_dim=3).permute(0, 2, 1, 3).reshape(self.batch_size, 4, 8*self.H_shape[0])
+        
+        partitions_flat = self.V_c_col.flatten(start_dim=1).unsqueeze(1).repeat(1, 4, 1)
+        partitions_flat = partitions_flat.unsqueeze(0).repeat(self.batch_size, 1, 1, 1)  
+        partitions_flat = partitions_flat.permute(0, 2, 1, 3).reshape(self.batch_size, 4, 8*self.H_shape[0])
+        partitions_flat_expanded = partitions_flat.expand(self.batch_size, -1, -1)
+        
+        sum_b_c2v = torch.zeros([self.batch_size, 4, self.H_shape[1] + 1], dtype=self.dtype, device=self.device)
+       
+        sum_b_c2v = bitnode + sum_b_c2v
+        sum_b_c2v.scatter_reduce_(2, partitions_flat_expanded, data_flat, reduce='prod')
+        return sum_b_c2v, new_err
+    
+
+    def convert_llr(self, bitnode, new_err):
+        idx = self.V_c_col.unsqueeze(0).unsqueeze(2) 
+        idx = idx.expand(self.batch_size, 2, 4, self.H_shape[0], 4)      
+
+        bitnode_expanded = bitnode.unsqueeze(1).unsqueeze(3).expand(-1, 2, -1, self.H_shape[0], -1)
+        bitnode_gathered = torch.gather(bitnode_expanded, dim=-1, index=idx)
+        bitnode_gathered = bitnode_gathered/new_err.clamp_min(self.eps)
+
+        num0 = bitnode_gathered[:, 0, 0, :, :] + bitnode_gathered[:, 0, 1, :, :] + self.eps
+        den0 = bitnode_gathered[:, 0, 2, :, :] + bitnode_gathered[:, 0, 3, :, :] + self.eps
+
+        num1 = bitnode_gathered[:, 1, 0, :, :] + bitnode_gathered[:, 1, 3, :, :] + self.eps
+        den1 = bitnode_gathered[:, 1, 1, :, :] + bitnode_gathered[:, 1, 2, :, :] + self.eps
+
+        # message: [batch, 2, 9, 4]
+        message = torch.empty((bitnode_gathered.size(0), 2, bitnode_gathered.size(3), bitnode_gathered.size(4)), 
+                            device=bitnode_gathered.device, dtype=bitnode_gathered.dtype)
+
+        message[:, 0] = torch.log(num0 / den0)
+        message[:, 1] = torch.log(num1 / den1)
+        return message
+    
+
+    def hard_decision(self, bitnode):
+        qubits = torch.argmax(bitnode, dim=1)
+        x_bits = torch.zeros((self.batch_size, self.N_extended), dtype=bitnode.dtype, device=bitnode.device)
+        z_bits = torch.zeros((self.batch_size, self.N_extended), dtype=bitnode.dtype, device=bitnode.device)
+        x_bits[(qubits == 1) | (qubits == 2)] = 1
+        z_bits[(qubits == 2) | (qubits == 3)] = 1
+        return x_bits, z_bits
+    
+
+    def syndrome_estimation(self, x_bits, z_bits, syndrome):
+        # Output check tensors
+        x_checks = torch.zeros((self.batch_size, self.H_shape[0]), dtype=x_bits.dtype, device=x_bits.device)
+        z_checks = torch.zeros((self.batch_size, self.H_shape[0]), dtype=x_bits.dtype, device=x_bits.device)
+
+        # Expand row indices per batch
+        idx0 = self.V_c_row[0].flatten().unsqueeze(0).expand(self.batch_size, -1)
+        idx1 = self.V_c_row[1].flatten().unsqueeze(0).expand(self.batch_size, -1)
+
+        # Gather source bits per batch
+        src0 = z_bits.gather(1, self.V_c_col[0].flatten().unsqueeze(0).expand(self.batch_size, -1))
+        src1 = x_bits.gather(1, self.V_c_col[1].flatten().unsqueeze(0).expand(self.batch_size, -1))
+
+        # XOR accumulation (sum then mod 2)
+        x_checks.scatter_add_(1, idx0, src0)
+        z_checks.scatter_add_(1, idx1, src1)
+
+        x_checks %= 2
+        z_checks %= 2
+        
+        x_match = (x_checks == syndrome[:, 0, :]).all(dim=1)
+        z_match = (z_checks == syndrome[:, 1, :]).all(dim=1)
+
+        # A batch is convergent if both match
+        convergent_mask = x_match & z_match       
+
+        return convergent_mask.int()
+    
