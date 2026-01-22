@@ -123,7 +123,7 @@ error:
   device: 
     device_type: cpu
     device_idx: 0
-  rate: 0.01
+  rate: 0.05
 ``` 
 
 The following table details the configuration parameters used in the error YAML file.
