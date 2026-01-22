@@ -322,7 +322,7 @@ The following table provides a detailed explanation of the metrics in the output
 | `converge success rate`          | Ratio of samples that successfully converge without a logical error |
 | `decoder invoke rate`            | Ratio of samples for which the decoder is invoked                           |
 | `average iteration`              | Average number of iterations per sample                                    |
-| `distribution`                   | Values from distribution at every 1%  |
+| `distribution`                   | Distribution of iterations at 1% interval |
 | `total time (s)`                 | Total time taken by the decoder in seconds                                  |
 | `average time per batch (s)`     | Average time taken per batch in seconds                                     |
 | `average time per sample (s)`    | Average time taken per sample in seconds                                    |

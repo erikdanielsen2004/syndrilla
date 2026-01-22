@@ -198,7 +198,6 @@ class create(torch.nn.Module):
                 l_out = l_out[:, :-1]
                 logger.info(f'Complete.')
                 logger.info(f'Decoding iterations: <{(self.i)}>.')
-                logger.info(f'e_out = {e_out}')
                 io_dict.update({
                     'e_v': e_out,
                     'iter': num_iters,
@@ -215,7 +214,6 @@ class create(torch.nn.Module):
         l_out = l_out[:, :-1]
         logger.info(f'Complete.')
         logger.info(f'Decoding iterations: <{(self.i)}>.')
-        logger.info(f'e_out = {e_out}')
         io_dict.update({
             'e_v': e_out,
             'iter': num_iters,
