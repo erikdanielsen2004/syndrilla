@@ -39,7 +39,7 @@ A PyTorch-based numerical simulator for decoders in quantum error correction.
 1. High modularity: easily customizing your own **decoding algorithms** and **error models**
 2. High compatibility: cross-platform simulation on CPUs, **GPUs**, and even AI accelerators
 3. High performance: showing **10-20X** speedup on GPUs over CPUs
-4. Community focus: support for standard **BPOSD** decoder
+4. Community focus: support for standard **BPOSD** decoder and **BP4** decoder
 5. Flexible data format: support for **FP16/BF16/FP32/FP64** simulation
 6. Hardware awareness: support for **quantization** simulation
 7. Fine-grained measurement: support for a broad range of metrics, with **degeneracy errors** highlighted
@@ -112,12 +112,14 @@ All configurations are defined through YAML files.
 Each module requires its own dedicated YAML configuration file, with the exception of the metric module.
 
 #### 2.1. Error module
-The error YAML file defines all configuration parameters associated with the error model.
+The error YAML file defines all configuration parameters associated with the error model. 
+It currently supports a 1-channel Binary Symmetric Channel (BSC) error model, as well as 2-channel error models for both depolarizing noise and BSC.
 An example error configuration file using the Binary Symmetric Channel (BSC) model is provided in ```bsc.error.yaml```:
 
 ```
 error:
   model: bsc
+  number_channel: 1
   device: 
     device_type: cpu
     device_idx: 0
@@ -127,10 +129,18 @@ error:
 The following table details the configuration parameters used in the error YAML file.
 | Key              | Description                                                   | Example                   |
 |------------------|---------------------------------------------------------------|---------------------------|
-| `error.model`     | Type of quantum error model applied to data qubits           | `bsc`                     |
+| `error.model`     | Type of quantum error model applied to data qubits           | `bsc` or `depol`          |
+| `error.number_channel`     | The number of error channel applied to quantum circuit           | `1` or `2`                     |
 | `error.device.device_type`       | Type of the device where the error injection will happen                                       | `cpu` or `cuda`                                       |
 | `error.device.device_idx`       | Index of the device where the error injection will happen. This option only works when `device_type = cuda`.                                                        | 0                           |
 | `error.rate`      | Physical error rate                                          | `0.05`                    |
+
+The following table details all types of error model Syndrilla supports.
+
+| Error Model      | Number of channels                                         |Example                                            |
+|------------------|------------------------------------------------------------|---------------------------------------------------|
+|Binary Symmetric Channel (BSC)|Both 1 and 2                                    | bsc                                               |
+|Depolarizing Channel |2                                                        | depol                                             |
 
 #### 2.2. Syndrome module
 The syndrome YAML file defines all configuration parameters associated with the syndrome measurement.
@@ -203,6 +213,15 @@ The following table details the configuration parameters used in the decoder mod
 | `decoder.logical_check_lx` | Path to the X-type logical check matrix in YAML format               | `examples/alist/lx.matrix.yaml`                   |
 | `decoder.logical_check_lz` | Path to the Z-type logical check matrix in YAML format               | `examples/alist/lz.matrix.yaml`                   |
 
+The following table details the different types of decoding algorithms Syndrilla supports.
+
+| Error Model                       | #Channel                                          | Example                                            | Reference         |
+|-----------------------------------|-------------------------------------------------------------|----------------------------------------------------|---------------------|
+|Min-Sum Belief Propagation  (Min-Sum BP)| 1                                                           | bp_norm_min_sum                                    | Factor Graphs and the Sum-Product Algorithm |
+|Branch-Assisted Sign-Flipping Belief Propagation (BSFBP) | 1                                     | bp_branch_assisted                                 | Branch-Assisted Sign-Flipping Belief Propagation Decoding for Topological Quantum Codes Based on Hypergraph Product Structure |
+|Ordered Statistics Decoding (OSD)  | 1                                                           | osd_0                                              | Soft-Decision Decoding of Linear Block Codes Based on Ordered Statistics |    
+|Quaternary Belief Propagation (BP4)| 2                                                           | bp4                                                | Quaternary Neural Belief Propagation Decoding of Quantum LDPC Codes with Overcomplete Check Matrices|
+
 #### 2.5. Logical check module
 The check YAML file defines all configuration parameters associated with the computation of logical check error rates.
 An example configuration file for computing the logical check error rate using the lx matrix is provided in ```lx.check.yaml```.
@@ -231,44 +250,60 @@ Example output of running above code:
 ```
 decoder_0:
   algorithm: bp_norm_min_sum
-  data qubit accuracy: 0.9750922651933701
-  data qubit correction accuracy: 0.64017367568301
-  data frame error rate: 0.675
-  syndrome frame error rate: 0.5745
-  logical error rate: 0.6114
-  converge failure rate: 0.0369
-  converge success rate: 0.3886
-  decoder invoke rate: 1.0
-  average iteration: 76.58840000000001
-  total time (s): '3.61253023147583008e-01'
-  average time per batch (s): '3.61253023147583008e-01'
-  average time per sample (s): '3.61253023147583004e-05'
-  average time per iteration (s): '4.71681120310103036e-07'
+  decoder invoke rate: 1.00000000000000000e+00
+  average iteration: 1.79144704761904791e+02
+  distribution: [1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4,
+    4, 5, 6, 7, 14, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242,
+    242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242,
+    242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242,
+    242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242,
+    242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242, 242]
+  total time (s): '1.53461852073669434e+01'
+  average time per batch (s): '7.30770724160330620e-01'
+  average time per sample (s): '7.30770724160330684e-05'
+  average time per iteration (s): '4.07948710925328149e-07'
+  hx:
+    data qubit accuracy: 9.81257221566312232e-01
+    data qubit correction accuracy: 6.69583968602863844e-01
+    data frame error rate: 7.78004761904761977e-01
+    syndrome frame error rate: 7.36490476190476140e-01
+    logical error rate: 7.36661904761904740e-01
+    converge failure rate: 1.71428571428571425e-04
+    converge success rate: 2.63338095238095149e-01
 decoder_1:
   algorithm: osd_0
-  data qubit accuracy: 0.9814502762430939
-  data qubit correction accuracy: 0.6858332553569757
-  data frame error rate: 0.5288
-  syndrome frame error rate: 0.0
-  logical error rate: 0.1157
-  converge failure rate: 0.1157
-  converge success rate: 0.8843
-  decoder invoke rate: 0.5745
-  average iteration: 177.48424717145343
-  total time (s): '1.84588861465454102e+00'
-  average time per batch (s): '1.84588861465454102e+00'
-  average time per sample (s): '1.84588861465454109e-04'
-  average time per iteration (s): '1.04002954857811950e-06'
+  decoder invoke rate: 7.36490476190476140e-01
+  average iteration: 2.36568818167190017e+02
+  distribution: [1, 227, 229, 230, 230, 231, 231, 232, 232, 233, 233, 233, 233, 234,
+    234, 234, 234, 234, 234, 235, 235, 235, 235, 235, 235, 235, 236, 236, 236, 236,
+    236, 236, 236, 236, 236, 236, 236, 236, 236, 237, 237, 237, 237, 237, 237, 237,
+    237, 237, 237, 237, 237, 237, 237, 238, 238, 238, 238, 238, 238, 238, 238, 238,
+    238, 238, 238, 238, 238, 239, 239, 239, 239, 239, 239, 239, 239, 239, 239, 239,
+    239, 239, 239, 239, 239, 239, 239, 239, 239, 239, 239, 239, 239, 239, 239, 239,
+    239, 239, 239, 239, 239, 239, 239]
+  total time (s): '1.02458470344543457e+02'
+  average time per batch (s): '4.87897477831159332e+00'
+  average time per sample (s): '4.87897477831159237e-04'
+  average time per iteration (s): '2.06239091821614230e-06'
+  hx:
+    data qubit accuracy: 9.83180617866981299e-01
+    data qubit correction accuracy: 7.11704897881009879e-01
+    data frame error rate: 5.94433333333333369e-01
+    syndrome frame error rate: 0.00000000000000000e+00
+    logical error rate: 4.87619047619047580e-03
+    converge failure rate: 4.87619047619047580e-03
+    converge success rate: 9.95123809523809744e-01
 decoder_full:
-  H matrix: /home/ya212494/code/syndrilla/examples/alist/surface/surface_10_hx.alist
   batch size: 10000
-  batch count: 1
+  batch count: 21
   target error: 1000
-  target error reached: 1157
+  target error reached: 1024
   data type: torch.float64
-  physical error rate: 0.05
-  logical error rate: 0.1157
-  total time (s): '2.20714163780212402e+00'
+  physical error rate: 5.00000000000000028e-02
+  total time (s): '1.17804655551910400e+02'
+  H matrix: /home/ya212494/code/syndrilla/examples/alist/toric/toric_11_hx.alist
+  hx:
+    logical error rate: 7.36661904761904740e-01
 ```
 
 #### 3.1. Per-decoder metrics
@@ -287,6 +322,7 @@ The following table provides a detailed explanation of the metrics in the output
 | `converge success rate`          | Ratio of samples that successfully converge without a logical error |
 | `decoder invoke rate`            | Ratio of samples for which the decoder is invoked                           |
 | `average iteration`              | Average number of iterations per sample                                    |
+| `distribution`                   | Distribution of iterations at 1% interval |
 | `total time (s)`                 | Total time taken by the decoder in seconds                                  |
 | `average time per batch (s)`     | Average time taken per batch in seconds                                     |
 | `average time per sample (s)`    | Average time taken per sample in seconds                                    |

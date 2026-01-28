@@ -1,23 +1,24 @@
-import torch, yaml
+import torch
 import re
 import sys, os, time
+import pyfiglet, argparse, time
 import numpy as np
+import csv
+import yaml
 import subprocess
 from loguru import logger
-
-sys.path.append(os.getcwd())
-
+from syndrilla.utils import bcolors
 from syndrilla.decoder import create_decoder
 from syndrilla.error_model import create_error_model
 from syndrilla.syndrome import create_syndrome
-from syndrilla.metric import report_metric, compute_avg_metrics
+from syndrilla.metric import report_metric, save_metric, compute_avg_metrics, load_checkpoint_yaml
 from syndrilla.logical_check import create_check
 
+def main():
+    decoders = create_decoder('examples/alist/bp4.decoder.yaml')
 
-def test_batch_alist_hx(batch_size=1000, target_error=1000):
-    decoders = create_decoder(yaml_path='examples/alist/bposd_hx.decoder.yaml')
-    
-    error_model = create_error_model(yaml_path='examples/alist/bsc.error.yaml')
+    error_model = create_error_model('examples/alist/depol.error.yaml')
+    batch_size = 10000
     number_channel = error_model.number_channel
     num_decoders = len(decoders)
     algo_name = []
@@ -79,13 +80,13 @@ def test_batch_alist_hx(batch_size=1000, target_error=1000):
     logical_error_rate_all      = [([0.0] * number_channel) for _ in range(num_decoders)]
     converge_fail_all           = [([0.0] * number_channel) for _ in range(num_decoders)]
     converge_succ_all           = [([0.0] * number_channel) for _ in range(num_decoders)]
-    # create syndrome
-    syndrome_generator = create_syndrome(yaml_path='examples/alist/perfect.syndrome.yaml')
-        
-    logical_check = create_check(yaml_path = './examples/alist/lx.check.yaml')
-        
+    
+    syndrome_generator = create_syndrome('examples/alist/perfect.syndrome.yaml')
+
+    logical_check = create_check('examples/alist/lx.check.yaml')
+
+    target_error = 1000
     while num_err <= target_error:
-        # create error
         e_v_all = [torch.empty((0, number_channel, shape[1]) if number_channel > 1 else (0, shape[1]), 
                            dtype=dtype, 
                            device=decoder_device) 
@@ -97,16 +98,15 @@ def test_batch_alist_hx(batch_size=1000, target_error=1000):
         converge_all = [torch.empty((0), dtype=dtype, device=decoder_device) for _ in range(num_decoders+1)]
         iter_all = [torch.empty((0), dtype=dtype, device=decoder_device) for _ in range(num_decoders)]
         time_iter_all = [[] for _ in range(num_decoders)]
-
+        
+        # create error
         zero_qubits = torch.zeros([batch_size, shape[1]], dtype=dtype)
         error_vector, error_dataloader = error_model.inject_error(zero_qubits, batch_size)
         num_batches += 1
 
         avg_error_rate = torch.mean(torch.sum(error_vector, 1) / shape[1])
-        logger.info(f'Specified error rate <{error_model.rate}>.')
-        logger.info(f'Generated error rate <{avg_error_rate}>.')
-
         for err, llr, _ in error_dataloader:
+            # generate the syndrome for decoder
             err = err.to(e_all.device)
             e_all = torch.cat((e_all, err))
             synd = syndrome_generator.measure_syndrome(err, decoders[0])
@@ -116,21 +116,19 @@ def test_batch_alist_hx(batch_size=1000, target_error=1000):
                 'llr0': llr,
                 'H_matrix': H_matrix
             }
+
             decoder_idx = 0
-
-            if decoder_idx == 0:
             # first decoder
-                start_time = time.time()
-                io_dict = decoders[decoder_idx](io_dict)
+            start_time = time.time()
+            io_dict = decoders[decoder_idx](io_dict)
 
-                time_iter_all[decoder_idx].append(time.time() - start_time)
-                
-                e_v_all[decoder_idx] = torch.cat((e_v_all[decoder_idx], io_dict['e_v']), dim=0)
-                iter_all[decoder_idx] = torch.cat((iter_all[decoder_idx], io_dict['iter']))
-                converge_all[decoder_idx] = torch.cat((converge_all[decoder_idx], torch.zeros_like(io_dict['converge'])), dim=0)
-                converge_all[decoder_idx+1] = torch.cat((converge_all[decoder_idx+1], io_dict['converge']), dim=0)
-                decoder_idx += 1
-
+            time_iter_all[decoder_idx].append(time.time() - start_time)
+            
+            e_v_all[decoder_idx] = torch.cat((e_v_all[decoder_idx], io_dict['e_v']), dim=0)
+            iter_all[decoder_idx] = torch.cat((iter_all[decoder_idx], io_dict['iter']))
+            converge_all[decoder_idx] = torch.cat((converge_all[decoder_idx], torch.zeros_like(io_dict['converge'])), dim=0)
+            converge_all[decoder_idx+1] = torch.cat((converge_all[decoder_idx+1], io_dict['converge']), dim=0)
+            decoder_idx += 1
             while decoder_idx < num_decoders:
                 # second decoder
                 start_time = time.time()
@@ -140,13 +138,14 @@ def test_batch_alist_hx(batch_size=1000, target_error=1000):
                 e_v_all[decoder_idx] = torch.cat((e_v_all[decoder_idx], io_dict['e_v']), dim=0)
                 iter_all[decoder_idx] = torch.cat((iter_all[decoder_idx], io_dict['iter']))
                 converge_all[decoder_idx+1] = torch.cat((converge_all[decoder_idx+1], io_dict['converge']), dim=0)
-                decoder_idx += 1              
-            
+                decoder_idx += 1    
+
             check[0] = logical_check.check(e_v_all[0], e_all, l_matrix, converge_all[1])
             for i in range(1, num_decoders):
                 check[i] = logical_check.check(e_v_all[i], e_all, l_matrix, converge_all[i+1])
             num_err += int(torch.sum(check[num_decoders-1]))
-
+            
+            # report metric
             if number_channel == 1:
                 e_v_all = [
                     t.unsqueeze(1).expand(-1, number_channel, -1)  # (batch, number_channel, shape[1])
@@ -177,8 +176,11 @@ def test_batch_alist_hx(batch_size=1000, target_error=1000):
                 converge_succ_all[i]            = [a + b for a, b in zip(converge_succ_all[i], batch_converge_succ)]
         
             if num_batches % 100 == 0:
+                all_metrics = []
                 for i in range(num_decoders):
-                    _, _, _, _, _, _, _, _, _, _, _, _, _  = compute_avg_metrics(target_error, i, num_batches, total_time_all,
+                    total_time, average_time_sample, average_iter, distribution, average_time_sample_iter, data_qubit_acc, \
+                        data_frame_error_rate, synd_frame_error_rate, correction_acc, \
+                        logical_error_rate, invoke_rate, converge_fail, converge_succ = compute_avg_metrics(target_error, i, num_batches, total_time_all,
                                                                                         average_time_sample_all,
                                                                                         average_iter_all,
                                                                                         distribution_all,
@@ -191,9 +193,31 @@ def test_batch_alist_hx(batch_size=1000, target_error=1000):
                                                                                         invoke_rate_all,
                                                                                         converge_fail_all,
                                                                                         converge_succ_all)
+                    
+                    metrics_dict = {
+                        'algorithm': algo_name[i],
+                        'total_time': total_time,
+                        'average_time_sample': average_time_sample,
+                        'average_iter': average_iter,
+                        'distribution': distribution,
+                        'average_time_sample_iter': average_time_sample_iter,
+                        'data_qubit_acc': data_qubit_acc,
+                        'data_frame_error_rate': data_frame_error_rate,
+                        'synd_frame_error_rate': synd_frame_error_rate,
+                        'correction_acc': correction_acc,
+                        'logical_error_rate': logical_error_rate,
+                        'invoke_rate': invoke_rate,
+                        'converge_fail_rate': converge_fail,
+                        'converge_succ_rate': converge_succ
+                    }
+                    all_metrics.append(metrics_dict)
 
+            
+    all_metrics = []
     for i in range(num_decoders):
-        _, _, _, _, _, _, _, _, _, _, _, _, _ = compute_avg_metrics(target_error, i, num_batches, total_time_all,
+        total_time, average_time_sample, average_iter, distribution, average_time_sample_iter, data_qubit_acc, \
+            data_frame_error_rate, synd_frame_error_rate, correction_acc, \
+            logical_error_rate, invoke_rate, converge_fail, converge_succ = compute_avg_metrics(target_error, i, num_batches, total_time_all,
                                                                             average_time_sample_all,
                                                                             average_iter_all,
                                                                             distribution_all,
@@ -206,9 +230,25 @@ def test_batch_alist_hx(batch_size=1000, target_error=1000):
                                                                             invoke_rate_all,
                                                                             converge_fail_all,
                                                                             converge_succ_all)
-            
+
+        metrics_dict = {
+            'algorithm': algo_name[i],
+            'total_time': total_time,
+            'average_time_sample': average_time_sample,
+            'average_iter': average_iter,
+            'distribution': distribution,
+            'average_time_sample_iter': average_time_sample_iter,
+            'data_qubit_acc': data_qubit_acc,
+            'data_frame_error_rate': data_frame_error_rate,
+            'synd_frame_error_rate': synd_frame_error_rate,
+            'correction_acc': correction_acc,
+            'logical_error_rate': logical_error_rate,
+            'invoke_rate': invoke_rate,
+            'converge_fail_rate': converge_fail,
+            'converge_succ_rate': converge_succ
+        }
+        all_metrics.append(metrics_dict)
+
 
 if __name__ == '__main__':
-    batch_size = 100000
-    target_error = 1000
-    test_batch_alist_hx(batch_size, target_error)
+    main()
