@@ -1,0 +1,34 @@
+decoder_0:
+  algorithm: bp_dmem
+  decoder invoke rate: 1.00000000000000000e+00
+  average iteration: 1.81000000000000000e+02
+  distribution: [1, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181,
+    181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181,
+    181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181,
+    181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181,
+    181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181,
+    181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181, 181,
+    181, 181, 181, 181, 181, 181, 181]
+  total time (s): '1.82622337341308594e+01'
+  average time per batch (s): '1.80814195387434262e-01'
+  average time per sample (s): '1.80814195387434262e-02'
+  average time per iteration (s): '9.98973455179195149e-05'
+  hx:
+    data qubit accuracy: 5.00985618923883491e-01
+    data qubit correction accuracy: 5.00985618923883491e-01
+    data frame error rate: 1.00000000000000000e+00
+    syndrome frame error rate: 0.00000000000000000e+00
+    logical error rate: 1.00000000000000000e+00
+    converge failure rate: 0.00000000000000000e+00
+    converge success rate: 0.00000000000000000e+00
+decoder_full:
+  batch size: 10
+  batch count: 101
+  target error: 1000
+  target error reached: 1010
+  data type: torch.float64
+  physical error rate: 5.00000000000000000e-01
+  total time (s): '1.82622337341308594e+01'
+  H matrix: /home/th157962/testing_relay/syndrilla/examples/alist/surface/surface_11_hx.alist
+  hx:
+    logical error rate: 1.00000000000000000e+00

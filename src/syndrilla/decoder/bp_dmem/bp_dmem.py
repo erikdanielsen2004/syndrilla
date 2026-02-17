@@ -75,7 +75,7 @@ class create(torch.nn.Module):
             self.dtype = 'float64'
         self.dtype = torch.__dict__[self.dtype]
 
-        self.batch_size = 1
+        self.batch_size = 100
 
         self.check_type = decoder_cfg.get('check_type', 'hx')
         if self.check_type.lower() not in {'hx', 'hz'}: 

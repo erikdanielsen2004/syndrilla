@@ -1,25 +1,33 @@
 decoder_0:
   algorithm: bp_relay
-  data qubit accuracy: 0.967193665158371
-  data qubit correction accuracy: 0.5322301628260178
-  data frame error rate: 0.7492333333333333
-  syndrome frame error rate: 0.0009666666666666666
-  logical error rate: 0.0473
-  converge failure rate: 0.04633333333333334
-  converge success rate: 0.9527000000000001
-  decoder invoke rate: 1.0
-  average iteration: 15.624566666666666
-  total time (s): '2.91945672035217285e+00'
-  average time per batch (s): '9.73152240117390988e-01'
-  average time per sample (s): '9.73152240117391027e-05'
-  average time per iteration (s): '6.22873925859570310e-06'
+  decoder invoke rate: 1.00000000000000000e+00
+  average iteration: 2.86117249999999999e+01
+  distribution: [1, 10, 11, 11, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 13, 14,
+    14, 14, 14, 14, 14, 14, 14, 15, 15, 15, 15, 15, 15, 15, 16, 16, 16, 16, 16, 16,
+    17, 17, 17, 18, 18, 18, 19, 19, 20, 21, 21, 22, 23, 24, 24, 25, 26, 27, 27, 28,
+    29, 29, 29, 30, 30, 31, 31, 32, 32, 32, 33, 34, 35, 35, 36, 37, 38, 38, 39, 39,
+    41, 41, 42, 42, 43, 44, 44, 45, 46, 46, 47, 49, 50, 52, 54, 56, 58, 60, 63, 66,
+    70, 75, 83, 149]
+  total time (s): '7.00474667549133301e+00'
+  average time per batch (s): '1.75118666887283325e+00'
+  average time per sample (s): '1.75118666887283338e-04'
+  average time per iteration (s): '6.09912473840933326e-06'
+  hx:
+    data qubit accuracy: 9.79268552036199003e-01
+    data qubit correction accuracy: 6.59722611263910963e-01
+    data frame error rate: 6.08500000000000041e-01
+    syndrome frame error rate: 0.00000000000000000e+00
+    logical error rate: 2.64999999999999993e-02
+    converge failure rate: 2.64999999999999993e-02
+    converge success rate: 9.73500000000000032e-01
 decoder_full:
-  H matrix: /home/th157962/testing_relay/syndrilla/examples/alist/surface/surface_11_hx.alist
   batch size: 10000
-  batch count: 3
+  batch count: 4
   target error: 1000
-  target error reached: 1419
+  target error reached: 1060
   data type: torch.float64
-  physical error rate: 0.05
-  logical error rate: 0.0473
-  total time (s): '2.91945672035217285e+00'
+  physical error rate: 5.00000000000000028e-02
+  total time (s): '7.00474667549133301e+00'
+  H matrix: /home/th157962/testing_relay/syndrilla/examples/alist/surface/surface_11_hx.alist
+  hx:
+    logical error rate: 2.64999999999999993e-02

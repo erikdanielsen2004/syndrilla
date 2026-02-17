@@ -46,12 +46,12 @@ class create(torch.nn.Module):
         self.center = decoder_cfg.get('center', 0.37)
         if not isinstance(self.center, float):
             logger.warning(f'Invalid input center <{self.center}>, default to <0.5>.')
-            self.center = 0.37
+            self.center = -0.254
 
         self.width = decoder_cfg.get('width', 1.25)
         if not isinstance(self.width, float):
             logger.warning(f'Invalid input width <{self.width}>, default to <1.0>.')
-            self.width = 1.25
+            self.width = .985
 
         # set up default device
         self.device = decoder_cfg.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
@@ -60,10 +60,10 @@ class create(torch.nn.Module):
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         #set up default solution number
-        self.solution = decoder_cfg.get('solution', 5)
+        self.solution = decoder_cfg.get('solution', 1)
         if self.solution <= 0 or not isinstance(self.solution, int):
             logger.warning(f'Invalid input solution number <{self.solution}>, default to <5>.')
-            self.solution = 5
+            self.solution = 1
         
         #initial iteration count
         self.iteration_initial = decoder_cfg.get('iteration_initial', 80)
@@ -78,10 +78,10 @@ class create(torch.nn.Module):
             self.iteration_count = 60
 
         # set up default R
-        self.legs = decoder_cfg.get('legs', 20)
+        self.legs = decoder_cfg.get('legs', 301)
         if self.legs <= 0 or not isinstance(self.legs, int):
             logger.warning(f'Invalid input R <{self.legs}>, default to <1>.')
-            self.legs = 20
+            self.legs = 301
         
         # set up default dtype
         self.dtype = decoder_cfg.get('dtype', 'float64')
@@ -162,7 +162,7 @@ class create(torch.nn.Module):
         logger.info(str(u_init.size()))
         e_out = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
         l_out = torch.zeros([self.batch_size, N_extended], dtype=self.dtype, device=self.device)
-        num_iters = torch.full([self.batch_size], 0, device=self.device)
+        num_iters = torch.full([self.batch_size], 1, device=self.device)
         converges = torch.full([self.batch_size], 0, device=self.device)
 
         # set up initialization for all parameters for decoding process 
@@ -183,14 +183,19 @@ class create(torch.nn.Module):
         while self.r < self.legs:
             self.r += 1
             self.i = 0
-            memory_strengths = self.create_memory_strengths(self.batch_size, N_extended, self.center, self.width)
+            #converges = torch.full([self.batch_size], 0, device=self.device)
+            #memory_strengths = self.create_memory_strengths(self.batch_size, N_extended, self.center, self.width)
             num_iters_local = torch.full([self.batch_size], -1, device=self.device)
             logger.info(f'Starting leg <{self.r}> decoding.')
 
             if self.r == 1:
                 self.max_iter = self.iteration_initial
+                memory_strengths = torch.full([self.batch_size, N_extended], 0.35, dtype=self.dtype, device=self.device)
             else:
                 self.max_iter = self.iteration_count
+                memory_strengths = self.create_memory_strengths(self.batch_size, N_extended, self.center, self.width)
+            message = torch.zeros_like(u_init[:, self.V_c_col])
+
             
             while self.i < self.max_iter:
                 # variable node update update v2c
@@ -208,8 +213,7 @@ class create(torch.nn.Module):
                 e_v = torch.where(l_v <= 0.0, 1.0, 0.0).to(self.dtype)
 
                 s_est = self.syndrome_estimation(e_v)
-                
-                # different samples from the same batch may terminated at different iteration (pick the smallest one) 
+            
                 indices = torch.all(s_est == syndrome, 1).nonzero()
                 checker = torch.where(num_iters_local == -1.0)[0]
                 indices = indices[torch.isin(indices, checker)]
@@ -225,9 +229,9 @@ class create(torch.nn.Module):
                     break
             
             #relay code to get best weight solution 
-            valid_mask = (converges == 1) & (solutions != self.solution)
+            valid_mask = (converges == 1) & (solutions < self.solution)
             new_e_weight_all = (e_out[:, :-1] * u_init[:, :-1].abs()).sum(dim=1)
-            solutions = solutions + valid_mask.to(solutions.dtype)
+            solutions[valid_mask] += 1
 
             #find better solution and update
             improve_mask = valid_mask & (new_e_weight_all < e_solutions)
@@ -236,7 +240,8 @@ class create(torch.nn.Module):
 
             #check if we have enough solutions
             solution_sum = solutions.sum()
-            if solution_sum == self.batch_size * self.solution:
+            if torch.all(solutions >= self.solution):
+                logger.info(f'All samples found {self.solution} solutions. Stopping relay.')
                 break
           
         logger.info(f'Complete.')
@@ -260,7 +265,7 @@ class create(torch.nn.Module):
 
 
     def vn_update(self, b_c2v, bias):
-        if self.i == 1:
+        if self.i == 1 and self.r == 1:
             return b_c2v
         else:
             sum_b_c2v = self.sum_func(bias, b_c2v)
@@ -273,7 +278,7 @@ class create(torch.nn.Module):
         exponent = torch.tensor(-(self.i), dtype=self.dtype) 
 
         # Compute the power in PyTorch:
-        beta = torch.tensor(1.0, dtype=self.dtype) - torch.pow(base, exponent)
+        beta = 0.9 #torch.tensor(1.0, dtype=self.dtype) - torch.pow(base, exponent)
 
         # compute sgn
         sign = torch.sgn(a_v2c)

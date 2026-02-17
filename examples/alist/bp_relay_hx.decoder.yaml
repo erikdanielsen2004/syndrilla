@@ -7,7 +7,7 @@ decoder:
   width: 1.0
   iteration_initial: 80
   iteration_count: 60
-  solution: 5
-  legs: 5
+  solution: 1
+  legs: 301
   max_iter: 181
   dtype: float64
