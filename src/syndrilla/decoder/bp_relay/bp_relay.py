@@ -51,6 +51,8 @@ class create(torch.nn.Module):
             logger.warning(f'Invalid input width <{self.width}>, default to <1.0>.')
             self.width = 1.25
 
+        self.init_mem_strength = decoder_cfg.get('init_mem_strength', 0.35)
+
         # set up default device
         self.device = decoder_cfg.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
         if self.device not in {'cuda', 'cpu', torch.device('cuda'), torch.device('cpu')}:
@@ -181,13 +183,12 @@ class create(torch.nn.Module):
         while self.r < self.legs:
             self.r += 1
             self.i = 0
-            #memory_strengths = self.create_memory_strengths(self.batch_size, N_extended, self.center, self.width)
             num_iters_local = torch.full([self.batch_size], -1, device=self.device)
             logger.info(f'Starting leg <{self.r}> decoding.')
 
             if self.r == 1:
                 self.max_iter = self.iteration_initial
-                memory_strengths = torch.full([self.batch_size, N_extended], 0.35, dtype=self.dtype, device=self.device)
+                memory_strengths = self.init_mem_strength
             else:
                 self.max_iter = self.iteration_count
                 memory_strengths = self.create_memory_strengths(self.batch_size, N_extended, self.center, self.width)

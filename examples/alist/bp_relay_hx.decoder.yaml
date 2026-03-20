@@ -11,3 +11,4 @@ decoder:
   legs: 301
   max_iter: 181
   dtype: float64
+  init_mem_strength: 0.35
