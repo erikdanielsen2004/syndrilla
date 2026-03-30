@@ -210,5 +210,5 @@ def test_batch_alist_hx(batch_size=1000, target_error=1000):
 
 if __name__ == '__main__':
     batch_size = 100000
-    target_error = 1000
+    target_error = 30
     test_batch_alist_hx(batch_size, target_error)

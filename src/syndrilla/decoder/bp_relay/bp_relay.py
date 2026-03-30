@@ -188,10 +188,11 @@ class create(torch.nn.Module):
 
             if self.r == 1:
                 self.max_iter = self.iteration_initial
-                memory_strengths = self.init_mem_strength
+                memory_strengths = torch.full([self.batch_size, N_extended], self.init_mem_strength, dtype=self.dtype, device=self.device)
             else:
                 self.max_iter = self.iteration_count
                 memory_strengths = self.create_memory_strengths(self.batch_size, N_extended, self.center, self.width)
+                message = u_init[:, self.V_c_col]
             
             
             while self.i < self.max_iter:

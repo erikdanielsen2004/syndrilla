@@ -162,7 +162,7 @@ def main():
                     for dtype in config_list['dtype']:
                         for probability in config_list['probability']:
                             if args.run_dir is None:
-                                dir_name = f'{decoder}_sweeping/{code}_{check_type}_{probability}_{distance}_{dtype}'
+                                dir_name = f'{decoder}_sweeping_low/{code}_{check_type}_{probability}_{distance}_{dtype}'
                             else:
                                 dir_name = f'{args.run_dir}/{code}_{check_type}_{probability}_{distance}_{dtype}'
                             base_path = os.path.join(base_dir, dir_name)

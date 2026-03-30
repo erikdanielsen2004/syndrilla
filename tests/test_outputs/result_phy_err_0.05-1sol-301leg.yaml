@@ -1,0 +1,25 @@
+decoder_0:
+  algorithm: bp_relay
+  data qubit accuracy: 0.9799421191553545
+  data qubit correction accuracy: 0.6658138659357792
+  data frame error rate: 0.6353166666666666
+  syndrome frame error rate: 9.166666666666667e-05
+  logical error rate: 0.008558333333333333
+  converge failure rate: 0.008466666666666667
+  converge success rate: 0.9914416666666667
+  decoder invoke rate: 1.0
+  average iteration: 1042.7489583333333
+  total time (s): '5.64117408990859985e+02'
+  average time per batch (s): '4.70097840825716631e+01'
+  average time per sample (s): '4.70097840825716654e-03'
+  average time per iteration (s): '4.50962234792909419e-06'
+decoder_full:
+  H matrix: /home/ca288330/snap/snapd-desktop-integration/343/Desktop/syndrilla/examples/alist/surface/surface_11_hx.alist
+  batch size: 10000
+  batch count: 12
+  target error: 1000
+  target error reached: 1027
+  data type: torch.float64
+  physical error rate: 0.05
+  logical error rate: 0.008558333333333333
+  total time (s): '5.64117408990859985e+02'

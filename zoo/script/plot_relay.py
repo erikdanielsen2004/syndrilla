@@ -1,5 +1,6 @@
 import sys, shutil
 import matplotlib.pyplot as plt
+import numpy as np
 from pathlib import Path
 from matplotlib.lines import Line2D
 
@@ -21,284 +22,213 @@ def main():
     results_relay = load_results_dict(dir_bp_relay)
     results_bposd = load_results_dict(dir_bposd)
 
-    def plot_data_format_compare(ax, error_rate, metric):
-        tag_shared = [error_rate, '11', 'hx', 'surface']
-        tags = []
+    FIGWIDTH = 3.33
+    FIGHEIGHT = 2
 
-        if metric == 'time':
-            full_decoding_metric = ['decoder_full', 'total time (s)']
-        elif metric == 'accuracy':
-            full_decoding_metric = ['decoder_full', 'logical error rate']
+    dtype = 'float32'
+    code = 'hx'
+    code_family = 'surface'
 
-        # X-axis values
-        x_ticks = [16, 32, 64]
+    decoder_results = {
+        'bp_relay': results_relay,
+        'bposd':    results_bposd,
+    }
+    colors  = {'bp_relay': 'tab:blue', 'bposd': 'tab:orange'}
+    markers = {'bp_relay': '^',        'bposd': 'o'}
 
-        for err in x_ticks:
-            tags.append(tag_to_str(tag_shared + [f'float{err}']))
-        
-        bp_relay_tags = []
-        for tag in tags:
-            bp_relay_tags.append(lookup_results_dict(results_relay,   full_decoding_metric + [tag]))
-        
-        bposd_tags = []
-        for tag in tags:
-            bposd_tags.append(lookup_results_dict(results_bposd,    full_decoding_metric + [tag]))
-        
-        colors = plt.get_cmap("tab10").colors[:3]
-        markers = ['^', 'o', 's']
+    # x-offset multiplier for log and linear scales
+    log_offsets   = {'bp_relay': 0.92, 'bposd': 1.08}
+    lin_offsets   = {'bp_relay': -0.15, 'bposd': 0.15}
 
-        color_labels = ['0.01', '0.05', '0.1']
-        marker_labels = ['bp_relay', 'bposd']
+    # ------------------------------------------------------------------ #
+    # PLOT 1: Logical error rate vs distance for fixed physical error rates
+    # ------------------------------------------------------------------ #
+    def plot_logical_vs_distance(ax):
+        distances = ['3', '7', '11']
+        distance_vals = [3, 7, 11]
+        fixed_error_rates = [0.02, 0.05, 0.1]
 
-        color_proxies = [Line2D([0], [0], color=c, lw=1) for c in colors]
-        marker_proxies = [Line2D([0], [0], color='black', lw=0, marker=m, markerfacecolor='black', linestyle='none', markersize=4) for m in markers]
+        rate_colors = {
+            0.02: plt.get_cmap("tab10").colors[0],
+            0.05: plt.get_cmap("tab10").colors[1],
+            0.1:  plt.get_cmap("tab10").colors[2],
+        }
 
-        # Combine labels
-        legend_proxies = color_proxies + marker_proxies
-        legend_labels = color_labels + marker_labels
+        for p in fixed_error_rates:
+            for decoder, results in decoder_results.items():
+                x_vals = []
+                y_vals = []
+                for d, dval in zip(distances, distance_vals):
+                    tag = tag_to_str([str(p), d, dtype, code, code_family])
+                    val = lookup_results_dict(results, [tag, 'decoder_full', 'logical error rate'])
+                    if val is not None and val > 0:
+                        x_vals.append(dval + lin_offsets[decoder])
+                        y_vals.append(val)
+                if x_vals:
+                    ax.plot(x_vals, y_vals,
+                            marker=markers[decoder],
+                            color=rate_colors[p],
+                            markersize=4,
+                            linestyle='--' if decoder == 'bposd' else '-')
 
-        if error_rate == '0.01':
-            colors_here = colors[0]
-        elif error_rate == '0.05':
-            colors_here = colors[1]
-        elif error_rate == '0.1':
-            colors_here = colors[2]
+        rate_proxies = [Line2D([0], [0], color=rate_colors[p], lw=1) for p in fixed_error_rates]
+        marker_proxies = [Line2D([0], [0], color='black', lw=0, marker=markers[dec],
+                                 markerfacecolor='black', linestyle='none', markersize=4)
+                          for dec in decoder_results]
+        ax.legend(rate_proxies + marker_proxies,
+                  [str(p) for p in fixed_error_rates] + list(decoder_results.keys()),
+                  fontsize='x-small', framealpha=1.0, loc='best', ncol=2,
+                  handletextpad=0.1, borderpad=0.25, columnspacing=0.1,
+                  labelspacing=0.1, handlelength=1)
 
-        if error_rate == '0.01':
-            label_relay = 'bp_relay'
-            label_bposd = 'bposd'
-        else:
-            label_relay = None
-            label_bposd = None
-
-        if error_rate == '0.1':
-            ax.legend(legend_proxies, legend_labels,
-                        fontsize='x-small',
-                        framealpha=1.0,
-                        loc='best',
-                        ncol=3,
-                        handletextpad=0.1,  # Reduce space between marker and label
-                        borderpad=0.25,      # Reduce space inside legend border
-                        columnspacing=0.1,  # Reduce space between columns if multi-column
-                        labelspacing=0.1,
-                        handlelength=1)
-
-        ax.plot(x_ticks, bp_relay_tags, marker=markers[0], label=label_relay, color=colors_here, markersize=4)
-        ax.plot(x_ticks, bposd_tags, marker=markers[1], label=label_bposd, color=colors_here, markersize=4)
-
-
-        # Axis labels and scale
-        ax.set_xlabel("Data format")
-        if metric == 'time':
-            ax.set_ylabel("Runtime (s)")
-        elif metric == 'accuracy':
-            ax.set_ylabel("Logical error rate")
-        # ax.set_xscale("log")
+        ax.set_xlabel("Distance")
+        ax.set_ylabel("Logical error rate")
         ax.set_yscale("log")
-        ax.set_xticks(x_ticks)
-        ax.set_xticklabels([f'FP{str(x)}' for x in x_ticks])
+        ax.set_xticks(distance_vals)
+        ax.set_xticklabels([str(d) for d in distance_vals])
+        ax.grid(True)
 
-    def plot_distance_compare(ax, distance, metric):
-        tag_shared = [distance, 'float64', 'hx', 'surface']
-        tags = []
+    # ------------------------------------------------------------------ #
+    # PLOT 2: Average iterations vs distance
+    # ------------------------------------------------------------------ #
+    def plot_avg_iterations_vs_distance(ax):
+        distances = ['3', '7', '11']
+        distance_vals = [3, 7, 11]
+        fixed_error_rates = [0.02, 0.05, 0.1]
 
-        if metric == 'time':
-            full_decoding_metric = ['decoder_full', 'total time (s)']
-        elif metric == 'accuracy':
-            full_decoding_metric = ['decoder_full', 'logical error rate']
+        rate_colors = {
+            0.02: plt.get_cmap("tab10").colors[0],
+            0.05: plt.get_cmap("tab10").colors[1],
+            0.1:  plt.get_cmap("tab10").colors[2],
+        }
 
-        x_ticks = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5]
+        for p in fixed_error_rates:
+            for decoder, results in decoder_results.items():
+                x_vals = []
+                y_vals = []
+                for d, dval in zip(distances, distance_vals):
+                    tag = tag_to_str([str(p), d, dtype, code, code_family])
+                    val = lookup_results_dict(results, [tag, 'decoder_0', 'average iteration'])
+                    if val is not None and val > 0:
+                        x_vals.append(dval + lin_offsets[decoder])
+                        y_vals.append(val)
+                if x_vals:
+                    ax.plot(x_vals, y_vals,
+                            marker=markers[decoder],
+                            color=rate_colors[p],
+                            markersize=4,
+                            linestyle='--' if decoder == 'bposd' else '-')
 
-        for err in x_ticks:
-            tags.append(tag_to_str(tag_shared + [str(err)]))
-        
-        bp_relay_tags = []
-        for tag in tags:
-            bp_relay_tags.append(lookup_results_dict(results_relay, full_decoding_metric + [tag]))
-        
-        bposd_tags = []
-        for tag in tags:
-            bposd_tags.append(lookup_results_dict(results_bposd, full_decoding_metric + [tag]))
+        rate_proxies = [Line2D([0], [0], color=rate_colors[p], lw=1) for p in fixed_error_rates]
+        marker_proxies = [Line2D([0], [0], color='black', lw=0, marker=markers[dec],
+                                 markerfacecolor='black', linestyle='none', markersize=4)
+                          for dec in decoder_results]
+        ax.legend(rate_proxies + marker_proxies,
+                  [str(p) for p in fixed_error_rates] + list(decoder_results.keys()),
+                  fontsize='x-small', framealpha=1.0, loc='best', ncol=2,
+                  handletextpad=0.1, borderpad=0.25, columnspacing=0.1,
+                  labelspacing=0.1, handlelength=1)
 
-        colors = plt.get_cmap("tab10").colors[:3]
-        markers = ['^', 'o', 's']
+        ax.set_xlabel("Distance")
+        ax.set_ylabel("Average iterations")
+        ax.set_xticks(distance_vals)
+        ax.set_xticklabels([str(d) for d in distance_vals])
+        ax.grid(True)
 
-        color_labels = ['3', '7', '11']
-        marker_labels = ['bp_relay', 'bposd']
+    # ------------------------------------------------------------------ #
+    # PLOT 3: Average time per sample vs physical error rate
+    # ------------------------------------------------------------------ #
+    def plot_time_per_sample_vs_phys(ax):
+        distance = '11'
+        x_ticks = [0.02, 0.05, 0.1, 0.2, 0.5]
 
-        color_proxies = [Line2D([0], [0], color=c, lw=1) for c in colors]
-        marker_proxies = [Line2D([0], [0], color='black', lw=0, marker=m, markerfacecolor='black', linestyle='none', markersize=4) for m in markers]
+        for decoder, results in decoder_results.items():
+            x_vals = []
+            y_vals = []
+            for p in x_ticks:
+                tag = tag_to_str([str(p), distance, dtype, code, code_family])
+                val = lookup_results_dict(results, [tag, 'decoder_0', 'average time per sample (s)'])
+                if val is not None and val > 0:
+                    x_vals.append(p * log_offsets[decoder])
+                    y_vals.append(val)
+            if x_vals:
+                ax.plot(x_vals, y_vals,
+                        marker=markers[decoder],
+                        color=colors[decoder],
+                        label=decoder,
+                        markersize=4,
+                        linestyle='--' if decoder == 'bposd' else '-')
 
-        # Combine labels
-        legend_proxies = color_proxies + marker_proxies
-        legend_labels = color_labels + marker_labels
-
-        if distance == '3':
-            colors_here = colors[0]
-        elif distance == '7':
-            colors_here = colors[1]
-        elif distance == '11':
-            colors_here = colors[2]
-
-        if distance == '3':
-            ax.legend(legend_proxies, legend_labels,
-                        fontsize='x-small',
-                        framealpha=1.0,
-                        ncol=3,
-                        loc='best',
-                        handletextpad=0.1,  # Reduce space between marker and label
-                        borderpad=0.25,      # Reduce space inside legend border
-                        columnspacing=0.1,  # Reduce space between columns if multi-column
-                        labelspacing=0.1,
-                        handlelength=1)
-            
-        ax.plot(x_ticks, bp_relay_tags, marker=markers[0], color=colors_here, markersize=4)
-        ax.plot(x_ticks, bposd_tags, marker=markers[0], color=colors_here, markersize=4)
-
-        # Axis labels and scale
         ax.set_xlabel("Physical error rate")
-        if metric == 'time':
-            ax.set_ylabel("Runtime (s)")
-        elif metric == 'accuracy':
-            ax.set_ylabel("Logical error rate")
+        ax.set_ylabel("Avg time per sample (s)")
         ax.set_xscale("log")
         ax.set_yscale("log")
         ax.set_xticks(x_ticks)
         ax.set_xticklabels([str(x) for x in x_ticks])
+        ax.legend(fontsize='x-small', framealpha=1.0, loc='best')
+        ax.grid(True)
 
-    def plot_batch_compare(ax):
-        tag_shared = ['0.5', '11', 'float64', 'hx', 'surface']
-        tags = []
+    # ------------------------------------------------------------------ #
+    # PLOT 4: Logical vs physical error rate
+    # ------------------------------------------------------------------ #
+    def plot_phys_vs_logical_relay_vs_bposd(ax):
+        distance = '11'
+        x_ticks = [0.02, 0.05, 0.1, 0.2, 0.5]
 
-        # 2^7 ~ 2^20
-        start_idx = 7
-        end_idx = 20
-        for i in range(end_idx + 1 - start_idx):
-            tags.append(tag_to_str(tag_shared + [f'{2**(7+i)}']))
+        for decoder, results in decoder_results.items():
+            x_vals, y_vals = [], []
+            for p in x_ticks:
+                tag = tag_to_str([str(p), distance, dtype, code, code_family])
+                val = lookup_results_dict(results, [tag, 'decoder_full', 'logical error rate'])
+                if val is not None and val > 0:
+                    x_vals.append(p * log_offsets[decoder])
+                    y_vals.append(val)
+            if x_vals:
+                ax.plot(x_vals, y_vals,
+                        marker=markers[decoder],
+                        color=colors[decoder],
+                        label=decoder,
+                        markersize=4,
+                        linestyle='--' if decoder == 'bposd' else '-')
 
-        full_decoding_time = ['decoder_full', 'total time (s)']
-        full_decoding_bs = ['decoder_full', 'batch size']
-        full_decoding_bc = ['decoder_full', 'batch count']
-
-        # X-axis values
-        x_ticks = [2**i for i in range(start_idx, end_idx + 1)]
-
-        bp_relay_tags = []
-        for tag in tags:
-            runtime = lookup_results_dict(results_relay,   full_decoding_time + [tag])
-            bs = lookup_results_dict(results_relay,   full_decoding_bs + [tag])
-            bc = lookup_results_dict(results_relay,   full_decoding_bc + [tag])
-            if runtime is not None:
-                bp_relay_tags.append(runtime / (bs * bc))
-            else:
-                bp_relay_tags.append(None)
-
-        bposd_tags = []
-        for tag in tags:
-            runtime = lookup_results_dict(results_bposd,   full_decoding_time + [tag])
-            bs = lookup_results_dict(results_bposd,   full_decoding_bs + [tag])
-            bc = lookup_results_dict(results_bposd,   full_decoding_bc + [tag])
-            if runtime is not None:
-                bposd_tags.append(runtime / (bs * bc))
-            else:
-                bposd_tags.append(None)
-
-        markers = ['^', 'o', 's']
-        marker_labels = ['bp_relay', 'bposd']
-        marker_proxies = [Line2D([0], [0], color='black', lw=0, marker=m, markerfacecolor='black', linestyle='none', markersize=4) for m in markers]
-
-        # Combine labels
-        legend_proxies = marker_proxies
-        legend_labels = marker_labels
-
-        colors_here = 'black'
-
-        ax.legend(legend_proxies, legend_labels,
-                    fontsize='x-small',
-                    framealpha=1.0,
-                    loc='best',
-                    ncol=3,
-                    handletextpad=0.1,  # Reduce space between marker and label
-                    borderpad=0.25,      # Reduce space inside legend border
-                    columnspacing=0.1,  # Reduce space between columns if multi-column
-                    labelspacing=0.1,
-                    handlelength=1)
-
-        ax.plot(x_ticks, bp_relay_tags, marker=markers[0], color=colors_here, markersize=4)
-        ax.plot(x_ticks, bposd_tags, marker=markers[1], color=colors_here, markersize=4)
-        
-        # Axis labels and scale
-        ax.set_xlabel("Batch size")
-        ax.set_ylabel("Runtime per input (s)")
+        ax.set_xlabel("Physical error rate")
+        ax.set_ylabel("Logical error rate")
         ax.set_xscale("log")
         ax.set_yscale("log")
+        ax.set_xticks(x_ticks)
+        ax.set_xticklabels([str(x) for x in x_ticks])
+        ax.legend(fontsize='x-small', framealpha=1.0, loc='best')
+        ax.grid(True)
 
-        # Select specific x-ticks to label
-        tick_locs = [2**i for i in range(start_idx, end_idx + 1, 3)]
-        tick_labels = [str(fr"$2^{{{i}}}$") for i in range(start_idx, end_idx + 1, 3)]
+    # --- Save all plots --- #
 
-        # Set the desired ticks and labels
-        ax.set_xticks(tick_locs)
-        ax.set_xticklabels(tick_labels)
-
-    FIGWIDTH = 3.33
-    FIGHEIGHT = 2
-
-    # PLOT DATA FORMAT COMPARE #
     fig, ax = plt.subplots(figsize=(FIGWIDTH, FIGHEIGHT))
-    metric = 'time'
-    plot_data_format_compare(ax, '0.01', metric)
-    plot_data_format_compare(ax, '0.05', metric)
-    plot_data_format_compare(ax, '0.1', metric)
-    ax.grid(True)
+    plot_phys_vs_logical_relay_vs_bposd(ax)
     fig.tight_layout()
-    plt.savefig(f"{base_dir}/{metric}_data_format.pdf", bbox_inches="tight", dpi=300)
-    plt.savefig(f"{base_dir}/{metric}_data_format.png", bbox_inches="tight", dpi=300)
+    plt.savefig(f"{base_dir}/logical_vs_physical_d11_hx.pdf", bbox_inches="tight", dpi=300)
+    plt.savefig(f"{base_dir}/logical_vs_physical_d11_hx.png", bbox_inches="tight", dpi=300)
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(FIGWIDTH, FIGHEIGHT))
-    metric = 'accuracy'
-    plot_data_format_compare(ax, '0.01', metric)
-    plot_data_format_compare(ax, '0.05', metric)
-    plot_data_format_compare(ax, '0.1', metric)
-    ax.grid(True)
+    plot_logical_vs_distance(ax)
     fig.tight_layout()
-    plt.savefig(f"{base_dir}/{metric}_data_format.pdf", bbox_inches="tight", dpi=300)
-    plt.savefig(f"{base_dir}/{metric}_data_format.png", bbox_inches="tight", dpi=300)
-    plt.close(fig)
-
-    # PLOT DISTANCE COMPARE #
-    fig, ax = plt.subplots(figsize=(FIGWIDTH, FIGHEIGHT))
-    metric = 'time'
-    plot_distance_compare(ax, '3', metric)
-    plot_distance_compare(ax, '7', metric)
-    plot_distance_compare(ax, '11', metric)
-    ax.grid(True)
-    fig.tight_layout()
-    plt.savefig(f"{base_dir}/{metric}_distance.pdf", bbox_inches="tight", dpi=300)
-    plt.savefig(f"{base_dir}/{metric}_distance.png", bbox_inches="tight", dpi=300)
+    plt.savefig(f"{base_dir}/logical_vs_distance_hx.pdf", bbox_inches="tight", dpi=300)
+    plt.savefig(f"{base_dir}/logical_vs_distance_hx.png", bbox_inches="tight", dpi=300)
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(FIGWIDTH, FIGHEIGHT))
-    metric = 'accuracy'
-    plot_distance_compare(ax, '3', metric)
-    plot_distance_compare(ax, '7', metric)
-    plot_distance_compare(ax, '11', metric)
-    ax.grid(True)
+    plot_avg_iterations_vs_distance(ax)
     fig.tight_layout()
-    plt.savefig(f"{base_dir}/{metric}_distance.pdf", bbox_inches="tight", dpi=300)
-    plt.savefig(f"{base_dir}/{metric}_distance.png", bbox_inches="tight", dpi=300)
+    plt.savefig(f"{base_dir}/avg_iterations_vs_distance_hx.pdf", bbox_inches="tight", dpi=300)
+    plt.savefig(f"{base_dir}/avg_iterations_vs_distance_hx.png", bbox_inches="tight", dpi=300)
     plt.close(fig)
 
-    # PLOT BATCH #
-    # fig, ax = plt.subplots(figsize=(FIGWIDTH, FIGHEIGHT))
-    # metric = 'time'
-    # plot_batch_compare(ax)
-    # ax.grid(True)
-    # fig.tight_layout()
-    # plt.savefig(f"{base_dir}/{metric}_batch.pdf", bbox_inches="tight", dpi=300)
-    # plt.savefig(f"{base_dir}/{metric}_batch.png", bbox_inches="tight", dpi=300)
-    # plt.close(fig)
+    fig, ax = plt.subplots(figsize=(FIGWIDTH, FIGHEIGHT))
+    plot_time_per_sample_vs_phys(ax)
+    fig.tight_layout()
+    plt.savefig(f"{base_dir}/time_per_sample_vs_physical_d11_hx.pdf", bbox_inches="tight", dpi=300)
+    plt.savefig(f"{base_dir}/time_per_sample_vs_physical_d11_hx.png", bbox_inches="tight", dpi=300)
+    plt.close(fig)
 
 if __name__ == '__main__':
     main()

@@ -152,10 +152,11 @@ def main():
         total_time_all, average_time_sample_all, average_iter_all, distribution_all, average_time_sample_iter_all, data_qubit_acc_all, data_frame_error_rate_all, \
             synd_frame_error_rate_all, correction_acc_all, logical_error_rate_all, invoke_rate_all, converge_fail_all, converge_succ_all, num_err, \
                 batch_size, target_error, ckpt_dtype, physical_error_rate, batch_count, ckpt_H = load_checkpoint_yaml(args.checkpoint_yaml, number_channel)
+        target_error = 30
         if batch_size != args.batch_size:
             raise FileNotFoundError(f'Checkpoint file not match on batch size: ckpt({batch_size}), input({args.batch_size})')
         elif target_error != args.target_error:
-            raise FileNotFoundError(f'Checkpoint file not match on target error: ckpt({target_error}), input({args.target_error})')
+            raise FileNotFoundError(f'Checkpoint file not match on target error: ckpt({target_error}), input({args.target_error}) from checkpoint yaml file({args.checkpoint_yaml})')
         elif ckpt_dtype != str(dtype):
             raise FileNotFoundError(f'Checkpoint file not match on data type: ckpt({ckpt_dtype}), input({dtype})')
         elif float(physical_error_rate) != float(error_model.rate):
